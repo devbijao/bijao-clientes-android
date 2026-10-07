@@ -14,7 +14,9 @@ import app.bijao.clientes.core.models.FavoritosResponse
 import app.bijao.clientes.core.models.HistorialResponse
 import app.bijao.clientes.core.models.MensajeResponse
 import app.bijao.clientes.core.models.NegocioDetalle
+import app.bijao.clientes.core.models.NotificacionesResponse
 import app.bijao.clientes.core.models.Perfil
+import app.bijao.clientes.core.models.SinLeerResponse
 import app.bijao.clientes.core.models.PerfilUpdateInput
 import app.bijao.clientes.core.models.QRIdentidad
 import app.bijao.clientes.core.models.RegistroInput
@@ -108,4 +110,10 @@ interface ApiService {
 
     @GET("api/app/historial/{id}")
     suspend fun compraDetalle(@Path("id") id: String): Response<Envelope<CompraDetalle>>
+
+    @GET("api/app/notificaciones")
+    suspend fun notificaciones(@Query("limite") limite: Int = 30): Response<NotificacionesResponse>
+
+    @POST("api/app/notificaciones/leer")
+    suspend fun marcarNotificacionesLeidas(): Response<SinLeerResponse>
 }

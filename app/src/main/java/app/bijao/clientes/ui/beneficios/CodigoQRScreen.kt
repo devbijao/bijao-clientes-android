@@ -44,14 +44,35 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** Pantalla con TopAppBar -- se abre desde "Mostrar mi código" en Beneficios.
+ * Inicio (Fase A7) usa el contenido [CodigoQR] directo, con su propio
+ * encabezado, en vez de este wrapper. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CodigoQRScreen(onAtras: () -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Mi código") },
+                navigationIcon = {
+                    IconButton(onClick = onAtras) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        CodigoQR(modifier = Modifier.padding(padding))
+    }
+}
+
 /**
  * QR de identidad que se muestra en caja -- equivalente de `CodigoQRView.swift`.
  * `POST /api/app/qr` entrega un token rotatorio de un solo uso (TTL corto);
  * se renueva solo al expirar.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CodigoQRScreen(onAtras: () -> Unit) {
+fun CodigoQR(modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     var tokenTexto by remember { mutableStateOf<String?>(null) }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
@@ -88,68 +109,55 @@ fun CodigoQRScreen(onAtras: () -> Unit) {
         generar()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Mi código") },
-                navigationIcon = {
-                    IconButton(onClick = onAtras) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+    Column(
+        modifier = modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(240.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(20.dp)),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(240.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(20.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                when {
-                    bitmap != null -> Image(
-                        bitmap = bitmap!!.asImageBitmap(),
-                        contentDescription = "Código QR",
-                        modifier = Modifier.size(200.dp),
-                    )
-                    error != null -> EstadoVacio(
-                        icono = Icons.Filled.QrCode,
-                        titulo = "¡Ups! No pudimos generar tu código",
-                        descripcion = "Inténtalo de nuevo en un momento.",
-                    )
-                    else -> CircularProgressIndicator()
-                }
+            when {
+                bitmap != null -> Image(
+                    bitmap = bitmap!!.asImageBitmap(),
+                    contentDescription = "Código QR",
+                    modifier = Modifier.size(200.dp),
+                )
+                error != null -> EstadoVacio(
+                    icono = Icons.Filled.QrCode,
+                    titulo = "¡Ups! No pudimos generar tu código",
+                    descripcion = "Inténtalo de nuevo en un momento.",
+                )
+                else -> CircularProgressIndicator()
             }
+        }
 
-            if (error != null) {
-                Button(onClick = { scope.launch { generar() } }, enabled = !reintentando) {
-                    if (reintentando) CircularProgressIndicator(modifier = Modifier.size(16.dp)) else Text("Cargar de nuevo")
-                }
+        if (error != null) {
+            Button(onClick = { scope.launch { generar() } }, enabled = !reintentando) {
+                if (reintentando) CircularProgressIndicator(modifier = Modifier.size(16.dp)) else Text("Cargar de nuevo")
             }
+        }
 
-            tokenTexto?.let { token ->
-                Text(
-                    if (segundosRestantes > 0) "Se renueva en ${segundosRestantes}s" else "Renovando…",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 16.dp),
-                )
-                Text(
-                    "O dicta este código",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 12.dp),
-                )
-                Text(
-                    formatearParaDictar(token),
-                    style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Monospace),
-                )
-            }
+        tokenTexto?.let { token ->
+            Text(
+                if (segundosRestantes > 0) "Se renueva en ${segundosRestantes}s" else "Renovando…",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 16.dp),
+            )
+            Text(
+                "O dicta este código",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 12.dp),
+            )
+            Text(
+                formatearParaDictar(token),
+                style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Monospace),
+            )
         }
     }
 }

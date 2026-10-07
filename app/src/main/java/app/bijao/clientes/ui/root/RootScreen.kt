@@ -35,6 +35,7 @@ fun RootScreen() {
     val sessionStatus by AuthManager.sessionStatus.collectAsState()
     var pantalla by remember { mutableStateOf(Pantalla.CARGANDO) }
     var perfil by remember { mutableStateOf<Perfil?>(null) }
+    var negociosVinculados by remember { mutableStateOf(0) }
 
     LaunchedEffect(sessionStatus) {
         when (sessionStatus) {
@@ -62,12 +63,18 @@ fun RootScreen() {
     when (pantalla) {
         Pantalla.CARGANDO -> Centrado { CircularProgressIndicator() }
         Pantalla.LOGIN -> LoginScreen()
-        Pantalla.ONBOARDING -> OnboardingScreen(celularSesion = AuthManager.celularSesion ?: "") { nuevoPerfil, _ ->
+        Pantalla.ONBOARDING -> OnboardingScreen(celularSesion = AuthManager.celularSesion ?: "") { nuevoPerfil, vinculados ->
             perfil = nuevoPerfil
+            negociosVinculados = vinculados
             pantalla = Pantalla.PRINCIPAL
         }
         Pantalla.PRINCIPAL -> perfil?.let { perfilActual ->
-            PrincipalScreen(perfil = perfilActual, onPerfilActualizado = { perfil = it })
+            PrincipalScreen(
+                perfil = perfilActual,
+                negociosVinculadosAlRegistrarse = negociosVinculados,
+                onToastVinculadosMostrado = { negociosVinculados = 0 },
+                onPerfilActualizado = { perfil = it },
+            )
         }
     }
 }

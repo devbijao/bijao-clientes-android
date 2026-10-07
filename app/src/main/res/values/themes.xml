@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sombrilla para el launcher/splash a nivel de sistema; Compose
+         (Material 3) maneja el resto de la UI, esto no se toca casi nunca. -->
+    <style name="Theme.BijaoClientes" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

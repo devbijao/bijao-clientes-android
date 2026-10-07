@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Azul Bijao (#007bff), el mismo que AccentColor en bijao-clientes-ios. -->
+    <color name="bijao_azul">#007BFF</color>
+    <color name="ic_launcher_background">#007BFF</color>
+</resources>

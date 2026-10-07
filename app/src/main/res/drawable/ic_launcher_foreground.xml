@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder: un círculo blanco centrado, igual de "sin marca final"
+     que el ícono con el que arrancó bijao-clientes-ios antes de subir el
+     real (Fase 10 de ese repo). Se reemplaza cuando haya un ícono de
+     verdad para Android. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30 A24,24 0 1 1 53.99,30 Z" />
+</vector>

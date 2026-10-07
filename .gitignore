@@ -1,0 +1,20 @@
+# Generado por el IDE / Gradle -- nada de esto se versiona, igual que el
+# .xcodeproj gitignorado en bijao-clientes-ios. El build.gradle.kts SÍ es la
+# fuente de verdad acá (no hace falta una capa generadora como XcodeGen).
+.idea/
+.gradle/
+.kotlin/
+build/
+*/build/
+local.properties
+captures/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Credenciales locales (API keys de Maps, etc.) -- ver secrets.defaults.properties
+secrets.properties
+
+.DS_Store

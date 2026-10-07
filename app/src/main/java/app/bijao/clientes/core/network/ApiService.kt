@@ -1,5 +1,8 @@
 package app.bijao.clientes.core.network
 
+import app.bijao.clientes.core.models.BeneficiosResponse
+import app.bijao.clientes.core.models.CanjeInput
+import app.bijao.clientes.core.models.CanjeResponse
 import app.bijao.clientes.core.models.CategoriasResponse
 import app.bijao.clientes.core.models.DejarResenaInput
 import app.bijao.clientes.core.models.DirectorioResponse
@@ -8,9 +11,11 @@ import app.bijao.clientes.core.models.FavoritoResponse
 import app.bijao.clientes.core.models.MensajeResponse
 import app.bijao.clientes.core.models.NegocioDetalle
 import app.bijao.clientes.core.models.Perfil
+import app.bijao.clientes.core.models.QRIdentidad
 import app.bijao.clientes.core.models.RegistroInput
 import app.bijao.clientes.core.models.RegistroResponse
 import app.bijao.clientes.core.models.ResenasResponse
+import app.bijao.clientes.core.models.ValesResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -61,4 +66,16 @@ interface ApiService {
 
     @PUT("api/app/negocios/{id}/resenas")
     suspend fun dejarResena(@Path("id") id: String, @Body body: DejarResenaInput): Response<MensajeResponse>
+
+    @GET("api/app/beneficios")
+    suspend fun beneficios(): Response<BeneficiosResponse>
+
+    @POST("api/app/canjear")
+    suspend fun canjear(@Body body: CanjeInput): Response<CanjeResponse>
+
+    @GET("api/app/vales")
+    suspend fun vales(@Query("estado") estado: String? = null): Response<ValesResponse>
+
+    @POST("api/app/qr")
+    suspend fun generarQR(): Response<Envelope<QRIdentidad>>
 }

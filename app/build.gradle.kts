@@ -92,4 +92,7 @@ dependencies {
 
     // Logos/portadas de negocios (Fase A3+) -- equivalente de `AsyncImage` de SwiftUI.
     implementation(libs.coil.compose)
+
+    // Generador de QR de identidad (Fase A4, §1.2) -- equivalente de EFQRCode en iOS.
+    implementation(libs.zxing.core)
 }

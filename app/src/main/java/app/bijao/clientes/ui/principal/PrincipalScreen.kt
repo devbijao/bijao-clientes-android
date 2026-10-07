@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -22,9 +23,13 @@ import androidx.navigation.navArgument
 import app.bijao.clientes.ui.beneficios.BeneficiosScreen
 import app.bijao.clientes.ui.beneficios.CodigoQRScreen
 import app.bijao.clientes.ui.beneficios.ValesScreen
+import app.bijao.clientes.core.models.Perfil
 import app.bijao.clientes.ui.explorar.ExplorarScreen
 import app.bijao.clientes.ui.explorar.NegocioDetalleScreen
 import app.bijao.clientes.ui.favoritos.FavoritosScreen
+import app.bijao.clientes.ui.historial.CompraDetalleScreen
+import app.bijao.clientes.ui.historial.HistorialScreen
+import app.bijao.clientes.ui.perfil.PerfilScreen
 
 private data class Tab(val ruta: String, val etiqueta: String, val icono: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -32,15 +37,16 @@ private val TABS = listOf(
     Tab("explorar", "Explorar", Icons.Filled.Explore),
     Tab("beneficios", "Beneficios", Icons.Filled.CardGiftcard),
     Tab("favoritos", "Favoritos", Icons.Filled.Favorite),
+    Tab("perfil", "Perfil", Icons.Filled.Person),
 )
 
 /**
  * Sombrilla de navegación post-login -- equivalente de `MainTabView` en iOS,
- * aunque todavía con tres pestañas (Explorar, Beneficios, Favoritos); el
- * resto (Perfil, Inicio) se suma a medida que se cierran sus fases.
+ * aunque todavía con cuatro pestañas (Explorar, Beneficios, Favoritos,
+ * Perfil); Inicio se suma cuando se cierre esa fase.
  */
 @Composable
-fun PrincipalScreen() {
+fun PrincipalScreen(perfil: Perfil, onPerfilActualizado: (Perfil) -> Unit) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val rutaActual = backStackEntry?.destination?.route
@@ -94,6 +100,26 @@ fun PrincipalScreen() {
             }
             composable("favoritos") {
                 FavoritosScreen(onNegocioClick = { id -> navController.navigate("negocio/$id") })
+            }
+            composable("perfil") {
+                PerfilScreen(
+                    perfilInicial = perfil,
+                    onPerfilActualizado = onPerfilActualizado,
+                    onVerHistorial = { navController.navigate("historial") },
+                )
+            }
+            composable("historial") {
+                HistorialScreen(
+                    onAtras = { navController.popBackStack() },
+                    onCompraClick = { id -> navController.navigate("compra/$id") },
+                )
+            }
+            composable(
+                "compra/{compraId}",
+                arguments = listOf(navArgument("compraId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val compraId = backStackEntry.arguments?.getString("compraId") ?: return@composable
+                CompraDetalleScreen(compraId = compraId, onAtras = { navController.popBackStack() })
             }
         }
     }

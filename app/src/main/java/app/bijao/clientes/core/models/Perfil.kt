@@ -38,3 +38,15 @@ data class RegistroResponse(
     val data: Perfil,
     @SerialName("negocios_vinculados") val negociosVinculados: Int? = null,
 )
+
+/** El celular se queda afuera a propósito: cambiarlo tiene reglas especiales
+ * (invalida la verificación por SMS) que esta pantalla no necesita cubrir. */
+@Serializable
+data class PerfilUpdateInput(
+    val nombre: String? = null,
+    val intereses: List<String>? = null,
+    val ciudad: String? = null,
+)
+
+@Serializable
+data class AvatarResponse(@SerialName("avatar_url") val avatarUrl: String? = null)

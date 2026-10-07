@@ -1,28 +1,35 @@
 package app.bijao.clientes.core.network
 
+import app.bijao.clientes.core.models.AvatarResponse
 import app.bijao.clientes.core.models.BeneficiosResponse
 import app.bijao.clientes.core.models.CanjeInput
 import app.bijao.clientes.core.models.CanjeResponse
 import app.bijao.clientes.core.models.CategoriasResponse
+import app.bijao.clientes.core.models.CompraDetalle
 import app.bijao.clientes.core.models.DejarResenaInput
 import app.bijao.clientes.core.models.DirectorioResponse
 import app.bijao.clientes.core.models.Envelope
 import app.bijao.clientes.core.models.FavoritoResponse
 import app.bijao.clientes.core.models.FavoritosResponse
+import app.bijao.clientes.core.models.HistorialResponse
 import app.bijao.clientes.core.models.MensajeResponse
 import app.bijao.clientes.core.models.NegocioDetalle
 import app.bijao.clientes.core.models.Perfil
+import app.bijao.clientes.core.models.PerfilUpdateInput
 import app.bijao.clientes.core.models.QRIdentidad
 import app.bijao.clientes.core.models.RegistroInput
 import app.bijao.clientes.core.models.RegistroResponse
 import app.bijao.clientes.core.models.ResenasResponse
 import app.bijao.clientes.core.models.ValesResponse
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -82,4 +89,23 @@ interface ApiService {
 
     @POST("api/app/qr")
     suspend fun generarQR(): Response<Envelope<QRIdentidad>>
+
+    @PUT("api/app/perfil")
+    suspend fun actualizarPerfil(@Body body: PerfilUpdateInput): Response<RegistroResponse>
+
+    @Multipart
+    @POST("api/app/perfil/avatar")
+    suspend fun subirAvatar(@Part file: MultipartBody.Part): Response<AvatarResponse>
+
+    @DELETE("api/app/perfil/avatar")
+    suspend fun quitarAvatar(): Response<AvatarResponse>
+
+    @GET("api/app/historial")
+    suspend fun historial(
+        @Query("desde") desde: Int = 0,
+        @Query("limite") limite: Int = 25,
+    ): Response<HistorialResponse>
+
+    @GET("api/app/historial/{id}")
+    suspend fun compraDetalle(@Path("id") id: String): Response<Envelope<CompraDetalle>>
 }

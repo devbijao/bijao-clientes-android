@@ -66,7 +66,9 @@ fun RootScreen() {
             perfil = nuevoPerfil
             pantalla = Pantalla.PRINCIPAL
         }
-        Pantalla.PRINCIPAL -> PrincipalScreen()
+        Pantalla.PRINCIPAL -> perfil?.let { perfilActual ->
+            PrincipalScreen(perfil = perfilActual, onPerfilActualizado = { perfil = it })
+        }
     }
 }
 

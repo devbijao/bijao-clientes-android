@@ -15,6 +15,12 @@
         android:theme="@style/Theme.BijaoClientes"
         android:supportsRtl="false">
 
+        <!-- Misma key que backend/.env y frontend/.env.local del monorepo;
+             ver el comentario en app/build.gradle.kts sobre secrets.properties. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

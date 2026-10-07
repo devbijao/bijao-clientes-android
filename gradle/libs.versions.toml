@@ -11,7 +11,7 @@ supabase = "3.8.0"
 ktorClient = "3.6.0"
 retrofit = "3.0.0"
 okhttp = "5.5.0"
-coil = "3.6.3"
+coil = "2.7.0"
 zxing = "3.5.4"
 mapsCompose = "9.0.0"
 playServicesMaps = "20.0.0"
@@ -43,8 +43,11 @@ retrofit-converter-kotlinx-serialization = { group = "com.squareup.retrofit2", n
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 
-coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
-coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+# Coil 2.x (androidx.compose puro) y NO Coil3 (multiplatform) a propósito --
+# Coil3 arrastra `org.jetbrains.compose.foundation` como transitiva, que
+# choca con el `androidx.compose.foundation` del BOM (el `weight` de Row/
+# Column resolvía al símbolo interno equivocado). Coil 2.x no tiene ese problema.
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 

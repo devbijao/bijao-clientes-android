@@ -25,15 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.platform.LocalContext
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationTokenSource
+import app.bijao.clientes.core.location.obtenerUbicacionActual
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.util.Locale
-import kotlin.coroutines.resume
 
 /**
  * Equivalente de `SelectorCiudadView.swift`: ubicación actual (reversa con
@@ -56,13 +52,7 @@ fun SelectorCiudadDialog(onSeleccionar: (String) -> Unit, onDismiss: () -> Unit)
         error = null
         scope.launch {
             try {
-                val cliente = LocationServices.getFusedLocationProviderClient(context)
-                val tokenCancelacion = CancellationTokenSource()
-                val ubicacion = suspendCancellableCoroutine<android.location.Location?> { cont ->
-                    cliente.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, tokenCancelacion.token)
-                        .addOnSuccessListener { cont.resume(it) }
-                        .addOnFailureListener { cont.resume(null) }
-                }
+                val ubicacion = obtenerUbicacionActual(context)
                 val ciudad = ubicacion?.let {
                     withContext(Dispatchers.IO) {
                         @Suppress("DEPRECATION")

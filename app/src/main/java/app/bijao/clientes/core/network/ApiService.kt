@@ -1,13 +1,24 @@
 package app.bijao.clientes.core.network
 
+import app.bijao.clientes.core.models.CategoriasResponse
+import app.bijao.clientes.core.models.DejarResenaInput
+import app.bijao.clientes.core.models.DirectorioResponse
 import app.bijao.clientes.core.models.Envelope
+import app.bijao.clientes.core.models.FavoritoResponse
+import app.bijao.clientes.core.models.MensajeResponse
+import app.bijao.clientes.core.models.NegocioDetalle
 import app.bijao.clientes.core.models.Perfil
 import app.bijao.clientes.core.models.RegistroInput
 import app.bijao.clientes.core.models.RegistroResponse
+import app.bijao.clientes.core.models.ResenasResponse
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Path
+import retrofit2.http.Query
 
 /**
  * Llamadas bajo `/api/app` -- equivalente de `AppClientesAPI.swift` en
@@ -21,4 +32,33 @@ interface ApiService {
 
     @POST("api/app/registro")
     suspend fun registrar(@Body body: RegistroInput): Response<RegistroResponse>
+
+    @GET("api/app/directorio")
+    suspend fun directorio(
+        @Query("q") q: String? = null,
+        @Query("categoria") categoria: String? = null,
+        @Query("ciudad") ciudad: String? = null,
+        @Query("lat") lat: Double? = null,
+        @Query("lng") lng: Double? = null,
+        @Query("desde") desde: Int = 0,
+        @Query("limite") limite: Int = 30,
+    ): Response<DirectorioResponse>
+
+    @GET("api/app/categorias")
+    suspend fun categorias(): Response<CategoriasResponse>
+
+    @POST("api/app/favoritos/{negocioId}")
+    suspend fun marcarFavorito(@Path("negocioId") negocioId: String): Response<FavoritoResponse>
+
+    @DELETE("api/app/favoritos/{negocioId}")
+    suspend fun quitarFavorito(@Path("negocioId") negocioId: String): Response<FavoritoResponse>
+
+    @GET("api/app/negocios/{id}")
+    suspend fun negocioDetalle(@Path("id") id: String): Response<Envelope<NegocioDetalle>>
+
+    @GET("api/app/negocios/{id}/resenas")
+    suspend fun resenas(@Path("id") id: String): Response<ResenasResponse>
+
+    @PUT("api/app/negocios/{id}/resenas")
+    suspend fun dejarResena(@Path("id") id: String, @Body body: DejarResenaInput): Response<MensajeResponse>
 }

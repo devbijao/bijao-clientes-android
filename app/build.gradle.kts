@@ -1,7 +1,22 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+}
+
+// Maps API key: `secrets.properties` (gitignorado, con la key real) pisa a
+// `secrets.defaults.properties` (versionado, vacío) si existe -- mismo patrón
+// que usa el sample oficial de maps-compose, sin necesitar su plugin de
+// Gradle aparte. La key es la MISMA que ya usan el frontend y el backend del
+// monorepo (`GOOGLE_MAPS_API_KEY` en `backend/.env`); falta restringirla por
+// paquete+SHA-1 de Android en Google Cloud Console (paso manual pendiente).
+val secretsProperties = Properties().apply {
+    val defaults = rootProject.file("secrets.defaults.properties")
+    val local = rootProject.file("secrets.properties")
+    if (defaults.exists()) load(defaults.inputStream())
+    if (local.exists()) load(local.inputStream())
 }
 
 android {
@@ -16,6 +31,7 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
+        manifestPlaceholders["MAPS_API_KEY"] = secretsProperties.getProperty("MAPS_API_KEY", "")
     }
 
     buildTypes {
@@ -66,9 +82,14 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
 
-    // Ubicación actual para el selector de ciudad del Onboarding (Fase A2) --
-    // junto con `Geocoder` (del SDK de Android, sin API key) resuelve nombre
-    // de ciudad sin depender todavía de Places/Maps (eso sigue bloqueado por
-    // la API key de Google Cloud, ver §1.1 del plan).
+    // Ubicación actual, compartida entre el selector de ciudad del Onboarding
+    // (Fase A2) y "cerca de mí" en Explorar (Fase A3).
     implementation(libs.play.services.location)
+
+    // Mapa del directorio (Fase A3, §1.1 del plan) -- Maps SDK vía Compose.
+    implementation(libs.maps.compose)
+    implementation(libs.play.services.maps)
+
+    // Logos/portadas de negocios (Fase A3+) -- equivalente de `AsyncImage` de SwiftUI.
+    implementation(libs.coil.compose)
 }

@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Ubicación aproximada: alcanza para resolver nombre de ciudad en el
+         selector del Onboarding, no hace falta la fina (FINE). -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:name=".BijaoClientesApp"

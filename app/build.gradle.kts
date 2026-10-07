@@ -65,4 +65,10 @@ dependencies {
     implementation(libs.retrofit.converter.kotlinx.serialization)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
+
+    // Ubicación actual para el selector de ciudad del Onboarding (Fase A2) --
+    // junto con `Geocoder` (del SDK de Android, sin API key) resuelve nombre
+    // de ciudad sin depender todavía de Places/Maps (eso sigue bloqueado por
+    // la API key de Google Cloud, ver §1.1 del plan).
+    implementation(libs.play.services.location)
 }

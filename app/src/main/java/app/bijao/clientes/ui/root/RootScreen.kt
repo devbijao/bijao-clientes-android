@@ -19,6 +19,7 @@ import app.bijao.clientes.core.auth.AuthManager
 import app.bijao.clientes.core.models.Perfil
 import app.bijao.clientes.core.network.ApiClient
 import app.bijao.clientes.ui.login.LoginScreen
+import app.bijao.clientes.ui.onboarding.OnboardingScreen
 import io.github.jan.supabase.auth.status.SessionStatus
 
 private enum class Pantalla { CARGANDO, LOGIN, ONBOARDING, PRINCIPAL }
@@ -26,9 +27,8 @@ private enum class Pantalla { CARGANDO, LOGIN, ONBOARDING, PRINCIPAL }
 /**
  * Equivalente de `RootView.swift` en bijao-clientes-ios: decide Login vs.
  * Onboarding vs. Principal según la sesión de Supabase y la respuesta de
- * `GET /api/app/perfil` (428 = "hay que registrarse"). Onboarding y
- * Principal son placeholders todavía -- eso es trabajo de las Fases A2+,
- * esta pantalla ya resuelve el ruteo real.
+ * `GET /api/app/perfil` (428 = "hay que registrarse"). Principal sigue
+ * siendo un placeholder -- eso es trabajo de la Fase A3+.
  */
 @Composable
 fun RootScreen() {
@@ -62,7 +62,10 @@ fun RootScreen() {
     when (pantalla) {
         Pantalla.CARGANDO -> Centrado { CircularProgressIndicator() }
         Pantalla.LOGIN -> LoginScreen()
-        Pantalla.ONBOARDING -> Centrado { Text("Onboarding -- Fase A2, todavía no implementada") }
+        Pantalla.ONBOARDING -> OnboardingScreen(celularSesion = AuthManager.celularSesion ?: "") { nuevoPerfil, _ ->
+            perfil = nuevoPerfil
+            pantalla = Pantalla.PRINCIPAL
+        }
         Pantalla.PRINCIPAL -> Centrado {
             Text("Hola${perfil?.nombre?.let { ", $it" } ?: ""} -- pantallas principales, Fase A3+")
         }

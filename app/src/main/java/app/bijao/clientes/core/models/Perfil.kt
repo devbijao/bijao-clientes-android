@@ -23,3 +23,18 @@ data class Perfil(
 
 @Serializable
 data class Envelope<T>(val data: T)
+
+@Serializable
+data class RegistroInput(
+    val nombre: String? = null,
+    val celular: String? = null,
+    val intereses: List<String> = emptyList(),
+    val ciudad: String? = null,
+    @SerialName("consentimiento_datos") val consentimientoDatos: Boolean,
+)
+
+@Serializable
+data class RegistroResponse(
+    val data: Perfil,
+    @SerialName("negocios_vinculados") val negociosVinculados: Int? = null,
+)

@@ -55,6 +55,11 @@ object AuthManager {
     /** Token actual para llamar al backend FastAPI (`Authorization: Bearer ...`). */
     val accessToken: String? get() = auth.currentAccessTokenOrNull()
 
+    /** Celular con el que se entró, si fue por SMS -- vacío si fue por correo.
+     * Lo usa Onboarding para precargar/enviar el celular ya verificado, igual
+     * que `auth.session?.user.phone` en iOS. */
+    val celularSesion: String? get() = auth.currentUserOrNull()?.phone
+
     suspend fun enviarCodigoSMS(celular10Digitos: String) {
         val telefono = "${AppConfig.INDICATIVO_TELEFONO}$celular10Digitos"
         auth.signInWith(OTP) { phone = telefono }

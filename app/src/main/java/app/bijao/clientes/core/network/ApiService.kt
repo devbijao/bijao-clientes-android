@@ -2,8 +2,12 @@ package app.bijao.clientes.core.network
 
 import app.bijao.clientes.core.models.Envelope
 import app.bijao.clientes.core.models.Perfil
+import app.bijao.clientes.core.models.RegistroInput
+import app.bijao.clientes.core.models.RegistroResponse
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
 
 /**
  * Llamadas bajo `/api/app` -- equivalente de `AppClientesAPI.swift` en
@@ -14,4 +18,7 @@ import retrofit2.http.GET
 interface ApiService {
     @GET("api/app/perfil")
     suspend fun perfil(): Response<Envelope<Perfil>>
+
+    @POST("api/app/registro")
+    suspend fun registrar(@Body body: RegistroInput): Response<RegistroResponse>
 }

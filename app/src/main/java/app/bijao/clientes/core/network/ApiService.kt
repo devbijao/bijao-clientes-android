@@ -8,6 +8,7 @@ import app.bijao.clientes.core.models.DejarResenaInput
 import app.bijao.clientes.core.models.DirectorioResponse
 import app.bijao.clientes.core.models.Envelope
 import app.bijao.clientes.core.models.FavoritoResponse
+import app.bijao.clientes.core.models.FavoritosResponse
 import app.bijao.clientes.core.models.MensajeResponse
 import app.bijao.clientes.core.models.NegocioDetalle
 import app.bijao.clientes.core.models.Perfil
@@ -57,6 +58,9 @@ interface ApiService {
 
     @DELETE("api/app/favoritos/{negocioId}")
     suspend fun quitarFavorito(@Path("negocioId") negocioId: String): Response<FavoritoResponse>
+
+    @GET("api/app/favoritos")
+    suspend fun favoritos(): Response<FavoritosResponse>
 
     @GET("api/app/negocios/{id}")
     suspend fun negocioDetalle(@Path("id") id: String): Response<Envelope<NegocioDetalle>>

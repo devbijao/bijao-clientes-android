@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -23,18 +24,20 @@ import app.bijao.clientes.ui.beneficios.CodigoQRScreen
 import app.bijao.clientes.ui.beneficios.ValesScreen
 import app.bijao.clientes.ui.explorar.ExplorarScreen
 import app.bijao.clientes.ui.explorar.NegocioDetalleScreen
+import app.bijao.clientes.ui.favoritos.FavoritosScreen
 
 private data class Tab(val ruta: String, val etiqueta: String, val icono: androidx.compose.ui.graphics.vector.ImageVector)
 
 private val TABS = listOf(
     Tab("explorar", "Explorar", Icons.Filled.Explore),
     Tab("beneficios", "Beneficios", Icons.Filled.CardGiftcard),
+    Tab("favoritos", "Favoritos", Icons.Filled.Favorite),
 )
 
 /**
  * Sombrilla de navegación post-login -- equivalente de `MainTabView` en iOS,
- * aunque todavía con solo dos pestañas (Explorar, Beneficios); el resto
- * (Favoritos, Perfil, Inicio) se suma a medida que se cierran sus fases.
+ * aunque todavía con tres pestañas (Explorar, Beneficios, Favoritos); el
+ * resto (Perfil, Inicio) se suma a medida que se cierran sus fases.
  */
 @Composable
 fun PrincipalScreen() {
@@ -88,6 +91,9 @@ fun PrincipalScreen() {
             }
             composable("qr") {
                 CodigoQRScreen(onAtras = { navController.popBackStack() })
+            }
+            composable("favoritos") {
+                FavoritosScreen(onNegocioClick = { id -> navController.navigate("negocio/$id") })
             }
         }
     }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -32,11 +33,9 @@ private enum class Metodo { CELULAR, CORREO }
 
 /**
  * Equivalente de `LoginView.swift` en bijao-clientes-ios: OTP por SMS
- * (Colombia) o código por correo, selector segmentado. Google OAuth queda
- * para una pasada siguiente dentro de la misma Fase A1 -- en Android no es
- * el mismo `ASWebAuthenticationSession` de una línea que en iOS, necesita
- * su propio flujo (Credential Manager o Custom Tabs) y no vale la pena
- * meterlo a medias en el primer slice.
+ * (Colombia) o código por correo, selector segmentado, + Google OAuth vía
+ * Custom Tabs (ver `AuthManager.iniciarSesionConGoogle`/`MainActivity` para
+ * la mitad que en iOS resuelve solo `ASWebAuthenticationSession`).
  */
 @Composable
 fun LoginScreen() {
@@ -45,6 +44,7 @@ fun LoginScreen() {
     var codigo by remember { mutableStateOf("") }
     var enviado by remember { mutableStateOf(false) }
     var cargando by remember { mutableStateOf(false) }
+    var cargandoGoogle by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
@@ -111,6 +111,38 @@ fun LoginScreen() {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (cargando) CircularProgressIndicator(modifier = Modifier.padding(2.dp)) else Text("Enviar código")
+            }
+
+            androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 16.dp))
+            Text(
+                "o continúa con",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+            androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 8.dp))
+
+            OutlinedButton(
+                onClick = {
+                    cargandoGoogle = true
+                    error = null
+                    scope.launch {
+                        try {
+                            AuthManager.iniciarSesionConGoogle()
+                            // No hay nada más que hacer acá: el Custom Tab se
+                            // abre solo y la sesión se completa cuando
+                            // MainActivity recibe el deep link de vuelta.
+                        } catch (e: Exception) {
+                            error = traducirErrorAuth(e).mensaje
+                        } finally {
+                            cargandoGoogle = false
+                        }
+                    }
+                },
+                enabled = !cargandoGoogle,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (cargandoGoogle) CircularProgressIndicator(modifier = Modifier.padding(2.dp)) else Text("Continuar con Google")
             }
         } else {
             Text(

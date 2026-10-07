@@ -22,4 +22,12 @@ object AppConfig {
 
     /** Colombia: único país soportado hoy en el OTP por SMS. */
     const val INDICATIVO_TELEFONO = "+57"
+
+    /** Callback de Google OAuth (deep link con esquema propio) -- MISMO valor
+     * que `AppConfig.oauthRedirectURL` en bijao-clientes-ios, ya autorizado
+     * en las Redirect URLs del proyecto Supabase AISLADO de Clientes: no hace
+     * falta ningún cambio nuevo en el dashboard para que Android lo use
+     * también. */
+    const val OAUTH_SCHEME = "bijaoclientes"
+    const val OAUTH_HOST = "auth-callback"
 }

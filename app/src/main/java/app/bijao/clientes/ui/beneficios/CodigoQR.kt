@@ -1,6 +1,11 @@
 package app.bijao.clientes.ui.beneficios
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Typeface
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -11,17 +16,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,39 +36,23 @@ import androidx.compose.ui.unit.dp
 import app.bijao.clientes.core.network.ApiClient
 import app.bijao.clientes.core.network.datoOLanzar
 import app.bijao.clientes.ui.explorar.EstadoVacio
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.qrcode.QRCodeWriter
+import com.google.zxing.EncodeHintType
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
+import com.google.zxing.qrcode.encoder.Encoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Pantalla con TopAppBar -- se abre desde "Mostrar mi código" en Beneficios.
- * Inicio (Fase A7) usa el contenido [CodigoQR] directo, con su propio
- * encabezado, en vez de este wrapper. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CodigoQRScreen(onAtras: () -> Unit) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Mi código") },
-                navigationIcon = {
-                    IconButton(onClick = onAtras) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        CodigoQR(modifier = Modifier.padding(padding))
-    }
-}
+private val AZUL_BIJAO_QR = Color.rgb(0, 123, 255)
 
 /**
- * QR de identidad que se muestra en caja -- equivalente de `CodigoQRView.swift`.
- * `POST /api/app/qr` entrega un token rotatorio de un solo uso (TTL corto);
- * se renueva solo al expirar.
+ * QR de identidad que se muestra en caja -- equivalente de `CodigoQRView.swift`
+ * + `GeneradorQR.swift`. `POST /api/app/qr` entrega un token rotatorio de un
+ * solo uso (TTL corto); se renueva solo al expirar. Único contenido (sin
+ * TopAppBar): Inicio (Fase A7) lo usa directo con su propio encabezado; ya no
+ * hay un wrapper con su propia pantalla -- el atajo de Beneficios se quitó
+ * cuando Inicio empezó a cubrir esto, igual que en iOS.
  */
 @Composable
 fun CodigoQR(modifier: Modifier = Modifier) {
@@ -85,7 +68,7 @@ fun CodigoQR(modifier: Modifier = Modifier) {
         reintentando = true
         try {
             val qr = ApiClient.service.generarQR().datoOLanzar().data
-            bitmap = withContext(Dispatchers.Default) { generarBitmapQR(qr.token, 480) }
+            bitmap = withContext(Dispatchers.Default) { generarBitmapQR(qr.token, 600) }
             segundosRestantes = qr.ttlSegundos
             tokenTexto = qr.token
         } catch (e: Exception) {
@@ -167,13 +150,67 @@ private fun formatearParaDictar(token: String): String {
     return "${token.take(mitad)} ${token.drop(mitad)}"
 }
 
+/**
+ * QR con la identidad visual de Bijao -- azul de marca en los módulos en vez
+ * de negro, módulos redondeados, con una marca en el centro. Equivalente de
+ * `GeneradorQR.swift` (EFQRCode en iOS, Swift-only, sin versión para
+ * Android); acá se arma a mano sobre `Encoder` de ZXing -- la API pública de
+ * alto nivel (`QRCodeWriter.encode`) ya entrega la matriz escalada a píxeles,
+ * sin acceso a los módulos individuales que hacen falta para redondearlos.
+ *
+ * Nivel de corrección `H` (el más alto) a propósito: al tapar el centro con
+ * una marca, un nivel más bajo puede volverlo ilegible para el escáner de caja.
+ *
+ * Sin el logo real de iOS ("LogoQR") todavía -- cae a un monograma con la
+ * inicial, mismo patrón de `TarjetaCard.RecuadroLogo` para cuando no hay un
+ * asset de marca disponible.
+ */
 private fun generarBitmapQR(texto: String, tamano: Int): Bitmap {
-    val matriz = QRCodeWriter().encode(texto, BarcodeFormat.QR_CODE, tamano, tamano)
-    val bitmap = Bitmap.createBitmap(tamano, tamano, Bitmap.Config.RGB_565)
-    for (x in 0 until tamano) {
-        for (y in 0 until tamano) {
-            bitmap.setPixel(x, y, if (matriz[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+    val hints = mapOf(
+        EncodeHintType.CHARACTER_SET to "UTF-8",
+        EncodeHintType.MARGIN to 1,
+    )
+    val qrCode = Encoder.encode(texto, ErrorCorrectionLevel.H, hints)
+    val matriz = qrCode.matrix ?: error("No se pudo generar la matriz del QR")
+    val numModulos = matriz.width
+    val anchoModulo = tamano.toFloat() / numModulos
+
+    val bitmap = Bitmap.createBitmap(tamano, tamano, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    canvas.drawColor(Color.WHITE)
+
+    val paintModulo = Paint().apply { color = AZUL_BIJAO_QR; isAntiAlias = true }
+    val radioModulo = anchoModulo * 0.28f
+    for (y in 0 until numModulos) {
+        for (x in 0 until numModulos) {
+            if (matriz.get(x, y).toInt() == 1) {
+                val left = x * anchoModulo
+                val top = y * anchoModulo
+                canvas.drawRoundRect(
+                    RectF(left, top, left + anchoModulo, top + anchoModulo),
+                    radioModulo, radioModulo, paintModulo,
+                )
+            }
         }
     }
+
+    // Monograma central con fondo blanco -- tapa los módulos de en medio,
+    // por eso la corrección H de arriba.
+    val ladoLogo = tamano * 0.2f
+    val cx = tamano / 2f
+    val cy = tamano / 2f
+    val rectLogo = RectF(cx - ladoLogo / 2, cy - ladoLogo / 2, cx + ladoLogo / 2, cy + ladoLogo / 2)
+    canvas.drawRoundRect(rectLogo, ladoLogo * 0.22f, ladoLogo * 0.22f, Paint().apply { color = Color.WHITE; isAntiAlias = true })
+
+    val paintTexto = Paint().apply {
+        color = AZUL_BIJAO_QR
+        isAntiAlias = true
+        textAlign = Paint.Align.CENTER
+        textSize = ladoLogo * 0.55f
+        typeface = Typeface.DEFAULT_BOLD
+    }
+    val metricas = paintTexto.fontMetrics
+    canvas.drawText("B", cx, cy - (metricas.ascent + metricas.descent) / 2, paintTexto)
+
     return bitmap
 }

@@ -251,7 +251,10 @@ fun PerfilScreen(perfilInicial: Perfil, onPerfilActualizado: (Perfil) -> Unit, o
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Avisarme de promociones y novedades", modifier = Modifier.weight(1f))
+                        Text(
+                            "Avisarme de promociones y novedades",
+                            modifier = Modifier.weight(1f).padding(end = 16.dp),
+                        )
                         Switch(
                             checked = notificacionesActivadas,
                             onCheckedChange = {

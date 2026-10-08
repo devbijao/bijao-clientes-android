@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ConfirmationNumber
-import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -40,10 +39,11 @@ import app.bijao.clientes.ui.explorar.EstadoVacio
 import kotlinx.coroutines.launch
 
 /** Tarjetas de sellos de todos los negocios vinculados -- equivalente de
- * `BeneficiosView.swift`. "Ver mis vales" y "Mostrar mi código" son filas al
- * final de la misma lista, no íconos en una barra de arriba. */
+ * `BeneficiosView.swift`. "Ver mis vales" es una fila al final de la misma
+ * lista, no un ícono en una barra de arriba. Sin atajo al código QR acá --
+ * eso quedó solo en Inicio (Fase A7), igual que en iOS. */
 @Composable
-fun BeneficiosScreen(onVerVales: () -> Unit, onMostrarQR: () -> Unit) {
+fun BeneficiosScreen(onVerVales: () -> Unit) {
     val scope = rememberCoroutineScope()
 
     var tarjetas by remember { mutableStateOf<List<Tarjeta>>(emptyList()) }
@@ -134,7 +134,6 @@ fun BeneficiosScreen(onVerVales: () -> Unit, onMostrarQR: () -> Unit) {
                     }
                 }
 
-                item { FilaAtajo(icono = Icons.Filled.QrCode, texto = "Mostrar mi código", onClick = onMostrarQR) }
                 item { FilaAtajo(icono = Icons.Filled.ConfirmationNumber, texto = "Ver mis vales", onClick = onVerVales) }
             }
         }

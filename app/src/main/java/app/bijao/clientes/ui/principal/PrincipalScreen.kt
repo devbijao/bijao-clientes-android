@@ -22,7 +22,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.bijao.clientes.ui.beneficios.BeneficiosScreen
-import app.bijao.clientes.ui.beneficios.CodigoQRScreen
 import app.bijao.clientes.ui.beneficios.ValesScreen
 import app.bijao.clientes.core.models.Perfil
 import app.bijao.clientes.ui.explorar.ExplorarScreen
@@ -109,16 +108,10 @@ fun PrincipalScreen(
                 NegocioDetalleScreen(negocioId = negocioId, onAtras = { navController.popBackStack() })
             }
             composable("beneficios") {
-                BeneficiosScreen(
-                    onVerVales = { navController.navigate("vales") },
-                    onMostrarQR = { navController.navigate("qr") },
-                )
+                BeneficiosScreen(onVerVales = { navController.navigate("vales") })
             }
             composable("vales") {
                 ValesScreen(onAtras = { navController.popBackStack() })
-            }
-            composable("qr") {
-                CodigoQRScreen(onAtras = { navController.popBackStack() })
             }
             composable("favoritos") {
                 FavoritosScreen(onNegocioClick = { id -> navController.navigate("negocio/$id") })

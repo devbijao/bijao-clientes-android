@@ -54,7 +54,7 @@ fun ValesScreen(onAtras: () -> Unit) {
         try {
             vales = ApiClient.service.vales().datoOLanzar().data
         } catch (e: Exception) {
-            error = e.message ?: "No pudimos cargar tus vales."
+            error = "Inténtalo de nuevo en un momento."
         } finally {
             cargando = false
         }

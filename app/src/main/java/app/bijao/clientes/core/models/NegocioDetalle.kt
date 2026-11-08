@@ -3,8 +3,7 @@ package app.bijao.clientes.core.models
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/** Espejo de `NegocioDetalle.swift` -- `GET /api/app/negocios/{id}`. Sin
- * `tarjetas` todavía: las tarjetas de sellos llegan con la Fase A4. */
+/** Espejo de `NegocioDetalle.swift` -- `GET /api/app/negocios/{id}`. */
 @Serializable
 data class NegocioDetalle(
     val id: String,
@@ -24,6 +23,7 @@ data class NegocioDetalle(
     val favorito: Boolean = false,
     @SerialName("en_directorio") val enDirectorio: Boolean = false,
     val vinculado: Boolean = false,
+    val tarjetas: List<Tarjeta> = emptyList(),
 )
 
 @Serializable

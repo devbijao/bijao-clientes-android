@@ -49,7 +49,12 @@ import app.bijao.clientes.ui.explorar.EstadoVacio
  * leído, no hay "marcar una". */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificacionesScreen(onCerrar: () -> Unit, onCompraClick: (String) -> Unit) {
+fun NotificacionesScreen(
+    onCerrar: () -> Unit,
+    onCompraClick: (String) -> Unit,
+    onContactosClick: () -> Unit,
+    onCreditoClick: (String) -> Unit,
+) {
     var notificaciones by remember { mutableStateOf<List<Notificacion>>(emptyList()) }
     var cargando by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -60,7 +65,7 @@ fun NotificacionesScreen(onCerrar: () -> Unit, onCompraClick: (String) -> Unit) 
         try {
             notificaciones = ApiClient.service.notificaciones(limite = 50).datoOLanzar().data
         } catch (e: Exception) {
-            error = e.message ?: "No pudimos cargar tus novedades."
+            error = "Inténtalo de nuevo en un momento."
         } finally {
             cargando = false
         }
@@ -99,9 +104,18 @@ fun NotificacionesScreen(onCerrar: () -> Unit, onCompraClick: (String) -> Unit) 
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     items(notificaciones, key = { it.id }) { notificacion ->
+                        val context = androidx.compose.ui.platform.LocalContext.current
                         FilaNotificacion(
                             notificacion = notificacion,
-                            onClick = notificacion.compraId?.let { id -> { onCompraClick(id) } },
+                            onClick = notificacion.compraId?.let { id -> { onCompraClick(id) } }
+                                ?: notificacion.cuentaDivididaCodigo?.let { codigo ->
+                                    {
+                                        val url = "${app.bijao.clientes.core.AppConfig.CLIENTES_WEB_BASE_URL}/dividir/$codigo"
+                                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                                    }
+                                }
+                                ?: notificacion.creditoPublicId?.let { id -> { onCreditoClick(id) } }
+                                ?: if (notificacion.esContactos) onContactosClick else null,
                         )
                     }
                 }

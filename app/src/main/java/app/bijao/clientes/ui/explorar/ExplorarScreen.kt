@@ -91,7 +91,7 @@ fun ExplorarScreen(onNegocioClick: (String) -> Unit) {
             negocios = respuesta.data
             total = respuesta.total
         } catch (e: Exception) {
-            error = e.message ?: "No pudimos cargar el directorio."
+            error = "Inténtalo de nuevo en un momento."
         } finally {
             cargando = false
         }

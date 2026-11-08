@@ -4,20 +4,25 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.CallSplit
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +58,8 @@ fun InicioScreen(
     negociosVinculadosAlRegistrarse: Int = 0,
     onToastVinculadosMostrado: () -> Unit = {},
     onAbrirNotificaciones: () -> Unit,
+    onDividirCuenta: () -> Unit,
+    onVerWallet: () -> Unit,
 ) {
     var sinLeer by remember { mutableStateOf(0) }
     var mostrarToastVinculados by remember { mutableStateOf(negociosVinculadosAlRegistrarse > 0) }
@@ -76,11 +83,17 @@ fun InicioScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.SpaceEvenly,
-        ) {
+        Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
             Cabecera(perfil = perfil, sinLeer = sinLeer, onAbrirNotificaciones = onAbrirNotificaciones)
+
+            Spacer(Modifier.padding(top = 20.dp))
+            Atajos(onDividirCuenta = onDividirCuenta, onVerWallet = onVerWallet)
+
+            // Espacio flexible antes del bloque del código (menos que el de
+            // abajo) -- así el texto queda justo arriba del QR, no pegado al
+            // encabezado, y el conjunto se asienta un poco por encima del
+            // centro de la pantalla en vez de perfectamente centrado.
+            Spacer(Modifier.weight(1f))
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -89,6 +102,8 @@ fun InicioScreen(
                 Text("Muestra este código en caja", style = MaterialTheme.typography.titleMedium)
                 CodigoQR()
             }
+
+            Spacer(Modifier.weight(1.6f))
         }
 
         AnimatedVisibility(
@@ -108,6 +123,33 @@ fun InicioScreen(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun Atajos(onDividirCuenta: () -> Unit, onVerWallet: () -> Unit) {
+    Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
+        AtajoCard(Icons.AutoMirrored.Filled.CallSplit, "Dividir cuenta", onDividirCuenta, Modifier.weight(1f))
+        AtajoCard(Icons.Filled.AccountBalanceWallet, "Mi Wallet", onVerWallet, Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun AtajoCard(icono: androidx.compose.ui.graphics.vector.ImageVector, texto: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(icono, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.padding(top = 8.dp))
+            Text(texto, style = MaterialTheme.typography.labelLarge, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
 }

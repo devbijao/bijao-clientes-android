@@ -2,6 +2,7 @@ package app.bijao.clientes.ui.beneficios
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -73,7 +74,7 @@ fun BeneficiosScreen(onVerVales: () -> Unit) {
             tarjetas = ApiClient.service.beneficios().datoOLanzar().data
             scope.launch { cargarLogos() }
         } catch (e: Exception) {
-            error = e.message ?: "No pudimos cargar tus sellos."
+            error = "Inténtalo de nuevo en un momento."
         } finally {
             cargando = false
         }
@@ -89,53 +90,64 @@ fun BeneficiosScreen(onVerVales: () -> Unit) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        when {
-            cargando && tarjetas.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-            error != null && tarjetas.isEmpty() -> EstadoVacio(
-                icono = Icons.Filled.WifiOff,
-                titulo = "No pudimos cargar tus sellos",
-                descripcion = error ?: "",
-            )
-            else -> LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                if (tarjetas.isEmpty()) {
-                    item {
-                        EstadoVacio(
-                            icono = Icons.Filled.CardGiftcard,
-                            titulo = "Aún no tienes tarjetas",
-                            descripcion = "Compra en un negocio Bijao y tu primera tarjeta aparece aquí.",
-                        )
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.weight(1f)) {
+                when {
+                    cargando && tarjetas.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
                     }
-                } else {
-                    items(tarjetas, key = { it.recompensaId }) { tarjeta ->
-                        TarjetaCard(
-                            tarjeta = tarjeta,
-                            canjeando = canjeandoId == tarjeta.recompensaId,
-                            logoUrl = logosPorNegocio[tarjeta.negocio.id],
-                        ) {
-                                scope.launch {
-                                    canjeandoId = tarjeta.recompensaId
-                                    try {
-                                        resultadoCanje = ApiClient.service.canjear(
-                                            CanjeInput(tarjeta.negocio.id, tarjeta.recompensaId),
-                                        ).datoOLanzar().data
-                                    } catch (e: Exception) {
-                                        errorCanje = e.message ?: "No pudimos canjear."
-                                    } finally {
-                                        canjeandoId = null
-                                    }
+                    error != null && tarjetas.isEmpty() -> EstadoVacio(
+                        icono = Icons.Filled.WifiOff,
+                        titulo = "No pudimos cargar tus sellos",
+                        descripcion = error ?: "",
+                    )
+                    else -> LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        if (tarjetas.isEmpty()) {
+                            item {
+                                EstadoVacio(
+                                    icono = Icons.Filled.CardGiftcard,
+                                    titulo = "Aún no tienes tarjetas",
+                                    descripcion = "Compra en un negocio Bijao y tu primera tarjeta aparece aquí.",
+                                )
+                            }
+                        } else {
+                            items(tarjetas, key = { it.recompensaId }) { tarjeta ->
+                                TarjetaCard(
+                                    tarjeta = tarjeta,
+                                    canjeando = canjeandoId == tarjeta.recompensaId,
+                                    logoUrl = logosPorNegocio[tarjeta.negocio.id],
+                                ) {
+                                        scope.launch {
+                                            canjeandoId = tarjeta.recompensaId
+                                            try {
+                                                resultadoCanje = ApiClient.service.canjear(
+                                                    CanjeInput(tarjeta.negocio.id, tarjeta.recompensaId),
+                                                ).datoOLanzar().data
+                                            } catch (e: Exception) {
+                                                errorCanje = "No pudimos canjear. Inténtalo de nuevo en un momento."
+                                            } finally {
+                                                canjeandoId = null
+                                            }
+                                        }
                                 }
+                            }
                         }
                     }
                 }
-
-                item { FilaAtajo(icono = Icons.Filled.ConfirmationNumber, texto = "Ver mis vales", onClick = onVerVales) }
             }
+
+            // Fija, fuera del LazyColumn -- así con muchas tarjetas no hay que
+            // bajar hasta el final de la lista para llegar a los vales.
+            FilaAtajo(
+                icono = Icons.Filled.ConfirmationNumber,
+                texto = "Ver mis vales",
+                onClick = onVerVales,
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+            )
         }
 
         errorCanje?.let { mensaje ->
@@ -152,8 +164,17 @@ fun BeneficiosScreen(onVerVales: () -> Unit) {
 }
 
 @Composable
-private fun FilaAtajo(icono: androidx.compose.ui.graphics.vector.ImageVector, texto: String, onClick: () -> Unit) {
-    Card(onClick = onClick, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+private fun FilaAtajo(
+    icono: androidx.compose.ui.graphics.vector.ImageVector,
+    texto: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = modifier,
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,

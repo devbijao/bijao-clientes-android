@@ -57,7 +57,7 @@ fun HistorialScreen(onAtras: () -> Unit, onCompraClick: (String) -> Unit) {
         try {
             compras = ApiClient.service.historial().datoOLanzar().data
         } catch (e: Exception) {
-            error = e.message ?: "No pudimos cargar tu historial."
+            error = "Inténtalo de nuevo en un momento."
         } finally {
             cargando = false
         }

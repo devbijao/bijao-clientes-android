@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,6 +29,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.bijao.clientes.core.models.Perfil
 import app.bijao.clientes.core.models.RegistroInput
@@ -40,16 +43,16 @@ import kotlinx.coroutines.launch
 val INTERESES = listOf("Barberías", "Restaurantes", "Belleza", "Tecnología", "Salud", "Moda")
 
 /**
- * Equivalente de `OnboardingView.swift`: alta en `app_usuarios` tras el login
- * OTP. El celular ya quedó probado por el SMS cuando se entró por ahí, así
- * que no se vuelve a pedir -- solo nombre, ciudad, intereses y
- * consentimiento, que es lo que el backend exige de verdad
- * (`POST /api/app/registro` responde 400 sin el consentimiento).
+ * Equivalente de `OnboardingView.swift`: alta en `app_usuarios` tras el login.
+ * Si se entró por celular+OTP, ese número ya quedó probado por el SMS y no se
+ * vuelve a pedir; si se entró con Google, `celularSesion` llega vacío y acá
+ * sí se pide (sin verificación SMS, por eso no marca `celular_verificado`).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun OnboardingScreen(celularSesion: String, onRegistrado: (Perfil, Int) -> Unit) {
     var nombre by remember { mutableStateOf("") }
+    var celular by remember { mutableStateOf("") }
     var ciudad by remember { mutableStateOf("") }
     var intereses by remember { mutableStateOf(setOf<String>()) }
     var consiente by remember { mutableStateOf(false) }
@@ -57,6 +60,8 @@ fun OnboardingScreen(celularSesion: String, onRegistrado: (Perfil, Int) -> Unit)
     var error by remember { mutableStateOf<String?>(null) }
     var mostrandoSelectorCiudad by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val pideCelular = celularSesion.isBlank()
+    val celularValido = !pideCelular || celular.length == 10
 
     if (mostrandoSelectorCiudad) {
         SelectorCiudadDialog(
@@ -66,8 +71,13 @@ fun OnboardingScreen(celularSesion: String, onRegistrado: (Perfil, Int) -> Unit)
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
     ) {
+        Spacer(Modifier.padding(top = 12.dp))
         Text("Un último paso", style = MaterialTheme.typography.headlineMedium)
         Text(
             "Para personalizar tu experiencia en Bijao.",
@@ -83,6 +93,17 @@ fun OnboardingScreen(celularSesion: String, onRegistrado: (Perfil, Int) -> Unit)
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.padding(top = 12.dp))
+
+        if (pideCelular) {
+            OutlinedTextField(
+                value = celular,
+                onValueChange = { nuevo -> if (nuevo.length <= 10 && nuevo.all { it.isDigit() }) celular = nuevo },
+                label = { Text("Tu celular (10 dígitos)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.padding(top = 12.dp))
+        }
 
         OutlinedButton(onClick = { mostrandoSelectorCiudad = true }, modifier = Modifier.fillMaxWidth()) {
             Text(ciudad.ifBlank { "Tu ciudad" })
@@ -125,7 +146,7 @@ fun OnboardingScreen(celularSesion: String, onRegistrado: (Perfil, Int) -> Unit)
                         val respuesta = ApiClient.service.registrar(
                             RegistroInput(
                                 nombre = nombre.trim().ifBlank { null },
-                                celular = celularSesion.ifBlank { null },
+                                celular = celularSesion.ifBlank { celular }.ifBlank { null },
                                 intereses = intereses.toList(),
                                 ciudad = ciudad.trim().ifBlank { null },
                                 consentimientoDatos = consiente,
@@ -141,7 +162,7 @@ fun OnboardingScreen(celularSesion: String, onRegistrado: (Perfil, Int) -> Unit)
                     }
                 }
             },
-            enabled = consiente && !guardando,
+            enabled = consiente && celularValido && !guardando,
             modifier = Modifier.fillMaxWidth(),
         ) {
             if (guardando) CircularProgressIndicator(modifier = Modifier.padding(2.dp)) else Text("Entrar a Bijao")

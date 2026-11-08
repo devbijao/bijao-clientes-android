@@ -66,7 +66,7 @@ fun FavoritosScreen(onNegocioClick: (String) -> Unit) {
         try {
             favoritos = ApiClient.service.favoritos().datoOLanzar().data
         } catch (e: Exception) {
-            error = e.message ?: "No pudimos cargar tus favoritos."
+            error = "Inténtalo de nuevo en un momento."
         } finally {
             cargando = false
         }

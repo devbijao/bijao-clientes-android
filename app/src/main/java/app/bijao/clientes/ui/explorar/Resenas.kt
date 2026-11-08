@@ -1,5 +1,6 @@
 package app.bijao.clientes.ui.explorar
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,12 +47,15 @@ import app.bijao.clientes.core.models.Resena
 import app.bijao.clientes.core.models.ResenasResponse
 import app.bijao.clientes.core.network.ApiClient
 import app.bijao.clientes.core.network.datoOLanzar
+import app.bijao.clientes.core.pdf.formatearFecha
+import app.bijao.clientes.core.pdf.parsearISO
 import app.bijao.clientes.core.ui.Estrellas
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 
-/** Promedio a la izquierda, dos reseñas recientes a la derecha -- equivalente
- * de `ResumenResenas.swift`. El listado completo vive en [TodasResenasScreen]. */
+/** Solo el total: promedio, estrellas y "(n reseñas)", más el botón para ver
+ * el listado completo -- las reseñas individuales ya no se adelantan acá
+ * (quedaron solo en [TodasResenasScreen]). Equivalente de `ResumenResenas.swift`. */
 @Composable
 fun ResumenResenas(respuesta: ResenasResponse, onVerTodas: () -> Unit) {
     Card(
@@ -59,13 +63,12 @@ fun ResumenResenas(respuesta: ResenasResponse, onVerTodas: () -> Unit) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Reseñas", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                if (respuesta.conteo > 0) {
-                    androidx.compose.material3.TextButton(onClick = onVerTodas) { Text("Ver todas") }
-                }
-            }
+        Column(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text("Reseñas", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.padding(top = 8.dp))
 
             if (respuesta.conteo == 0) {
                 Text(
@@ -74,78 +77,98 @@ fun ResumenResenas(respuesta: ResenasResponse, onVerTodas: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                Row(verticalAlignment = Alignment.Top) {
-                    Column(
-                        modifier = Modifier.width(92.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            respuesta.promedio?.let { "%.1f".format(it) } ?: "—",
-                            style = MaterialTheme.typography.headlineMedium,
-                        )
-                        Estrellas(valor = respuesta.promedio ?: 0.0)
-                        Text(
-                            "(${respuesta.conteo} reseña${if (respuesta.conteo == 1) "" else "s"})",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        respuesta.data.take(2).forEach { resena -> ResenaRow(resena) }
-                    }
-                }
+                Text(
+                    respuesta.promedio?.let { "%.1f".format(it) } ?: "—",
+                    style = MaterialTheme.typography.headlineMedium,
+                )
+                Estrellas(valor = respuesta.promedio ?: 0.0)
+                Text(
+                    "(${respuesta.conteo} reseña${if (respuesta.conteo == 1) "" else "s"})",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.padding(top = 10.dp))
+                androidx.compose.material3.OutlinedButton(onClick = onVerTodas) { Text("Ver todas") }
             }
         }
     }
 }
 
 @Composable
-fun ResenaRow(resena: Resena) {
-    Row(verticalAlignment = Alignment.Top) {
-        AsyncImage(
-            model = resena.avatarUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.size(38.dp).clip(CircleShape),
-        )
-        Spacer(Modifier.padding(start = 10.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(resena.autor, style = MaterialTheme.typography.labelLarge)
-                if (resena.esMia) {
-                    Spacer(Modifier.padding(start = 6.dp))
-                    Text(
-                        "Tú",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+fun ResenaCard(resena: Resena) {
+    var expandido by remember { mutableStateOf(false) }
+
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
+            AsyncImage(
+                model = resena.avatarUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(38.dp).clip(CircleShape),
+            )
+            Spacer(Modifier.padding(start = 10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(resena.autor, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                    if (resena.esMia) {
+                        Text(
+                            "Tú",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.padding(start = 8.dp))
+                    }
+                    Estrellas(valor = resena.calificacion.toDouble(), tamano = 12.dp)
                 }
-            }
-            resena.comentario?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
-            resena.respuesta?.let {
-                Row(verticalAlignment = Alignment.Top) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Reply,
-                        contentDescription = null,
-                        modifier = Modifier.size(12.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                resena.createdAt?.let { fecha ->
+                    parsearISO(fecha)?.let {
+                        Text(formatearFecha(it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                resena.comentario?.takeIf { it.isNotBlank() }?.let { comentario ->
+                    Spacer(Modifier.padding(top = 6.dp))
+                    // Un corte arbitrario de caracteres es más barato que medir
+                    // líneas reales, y alcanza: la idea es solo evitar que una
+                    // reseña larga empuje el resto de la lista, no ser exacto.
+                    val esLarga = comentario.length > 160
                     Text(
-                        it,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        if (esLarga && !expandido) comentario.take(160).trimEnd() + "…" else comentario,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
+                    if (esLarga) {
+                        Text(
+                            if (expandido) "ver menos" else "ver más...",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(top = 4.dp)
+                                .clickable { expandido = !expandido },
+                        )
+                    }
+                }
+                resena.respuesta?.let {
+                    Spacer(Modifier.padding(top = 8.dp))
+                    Row(verticalAlignment = Alignment.Top) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Reply,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.padding(start = 4.dp))
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
-        Estrellas(valor = resena.calificacion.toDouble(), tamano = 12.dp)
     }
 }
 
@@ -258,7 +281,7 @@ fun TodasResenasScreen(negocioId: String, resumenInicial: ResenasResponse, onAtr
                     )
                 }
             }
-            items(respuesta.data) { resena -> ResenaRow(resena) }
+            items(respuesta.data) { resena -> ResenaCard(resena) }
         }
     }
 }

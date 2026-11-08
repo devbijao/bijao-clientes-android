@@ -68,7 +68,7 @@ fun CompraDetalleScreen(compraId: String, onAtras: () -> Unit) {
             detalle = nuevoDetalle
             facturaPdf = withContext(Dispatchers.IO) { generarYGuardarFacturaPDF(context, nuevoDetalle) }
         } catch (e: Exception) {
-            error = e.message ?: "No pudimos cargar la compra."
+            error = "Inténtalo de nuevo en un momento."
         }
     }
 

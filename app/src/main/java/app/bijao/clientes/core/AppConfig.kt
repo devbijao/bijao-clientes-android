@@ -20,6 +20,12 @@ object AppConfig {
      * todas bajo `/api/app`. */
     const val API_BASE_URL = "https://bijao-u637.onrender.com/"
 
+    /** Subdominio de Bijao Clientes en la web (Next.js) -- distinto del
+     * dominio del portal de negocios ("bijao.app"). El link público de
+     * "Dividir cuenta" se abre ahí, no en una pantalla nativa (ver
+     * handoff_apps_nativas_cuentas_wallet.md). */
+    const val CLIENTES_WEB_BASE_URL = "https://clientes.bijao.app"
+
     /** Colombia: único país soportado hoy en el OTP por SMS. */
     const val INDICATIVO_TELEFONO = "+57"
 

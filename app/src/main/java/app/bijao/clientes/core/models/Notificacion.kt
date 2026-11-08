@@ -20,6 +20,22 @@ data class Notificacion(
      * no navega a ningún lado. */
     val compraId: String?
         get() = enlace?.takeIf { it.startsWith("/historial/") }?.removePrefix("/historial/")
+
+    /** Avisos de Contactos (solicitud recibida/aceptada, Fase S1) -- enlazan
+     * directo a `/contactos`, abriendo `ContactosScreen`. */
+    val esContactos: Boolean
+        get() = enlace == "/contactos"
+
+    /** Aviso "{nombre} te agregó a una cuenta 🧾" (Fase S3) -- el código de la
+     * cuenta dividida para abrir su ficha pública en la web (no hay pantalla
+     * nativa para *recibir* un link). */
+    val cuentaDivididaCodigo: String?
+        get() = enlace?.takeIf { it.startsWith("/dividir/") }?.removePrefix("/dividir/")
+
+    /** Avisos de Créditos (recordatorio, pago confirmado/rechazado -- F2/F5)
+     * enlazan directo a `/creditos/{id}`, abriendo `CreditoDetalleScreen`. */
+    val creditoPublicId: String?
+        get() = enlace?.takeIf { it.startsWith("/creditos/") }?.removePrefix("/creditos/")
 }
 
 @Serializable

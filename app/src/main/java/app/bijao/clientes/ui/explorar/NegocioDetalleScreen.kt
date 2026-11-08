@@ -41,18 +41,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import app.bijao.clientes.core.models.CanjeData
+import app.bijao.clientes.core.models.CanjeInput
 import app.bijao.clientes.core.models.NegocioDetalle
 import app.bijao.clientes.core.models.ResenasResponse
 import app.bijao.clientes.core.network.ApiClient
 import app.bijao.clientes.core.network.datoOLanzar
 import app.bijao.clientes.core.ui.BotonFavorito
 import app.bijao.clientes.core.ui.Estrellas
+import app.bijao.clientes.ui.beneficios.CanjeResultSheet
+import app.bijao.clientes.ui.beneficios.TarjetaCard
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 
 /** Ficha de un negocio del directorio -- `GET /api/app/negocios/{id}`,
- * equivalente de `NegocioDetalleView.swift`. Sin la sección de tarjetas de
- * sellos todavía (Fase A4). */
+ * equivalente de `NegocioDetalleView.swift`. */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun NegocioDetalleScreen(negocioId: String, onAtras: () -> Unit) {
@@ -63,8 +66,11 @@ fun NegocioDetalleScreen(negocioId: String, onAtras: () -> Unit) {
     var resenasResp by remember { mutableStateOf<ResenasResponse?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var mostrandoTodas by remember { mutableStateOf(false) }
+    var canjeandoId by remember { mutableStateOf<String?>(null) }
+    var resultadoCanje by remember { mutableStateOf<CanjeData?>(null) }
+    var errorCanje by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(negocioId) {
+    suspend fun cargar() {
         error = null
         try {
             detalle = ApiClient.service.negocioDetalle(negocioId).datoOLanzar().data
@@ -74,7 +80,16 @@ fun NegocioDetalleScreen(negocioId: String, onAtras: () -> Unit) {
                 // Si falla el fetch de reseñas, la ficha sigue siendo útil sin ellas.
             }
         } catch (e: Exception) {
-            error = e.message ?: "No pudimos cargar el negocio."
+            error = "Inténtalo de nuevo en un momento."
+        }
+    }
+
+    LaunchedEffect(negocioId) { cargar() }
+
+    resultadoCanje?.let { resultado ->
+        CanjeResultSheet(resultado = resultado) {
+            resultadoCanje = null
+            scope.launch { cargar() }
         }
     }
 
@@ -86,7 +101,9 @@ fun NegocioDetalleScreen(negocioId: String, onAtras: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(detalle?.nombre ?: "") },
+                // Sin título: el nombre ya aparece grande en el encabezado de
+                // abajo, repetirlo acá era redundante.
+                title = {},
                 navigationIcon = {
                     IconButton(onClick = onAtras) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
@@ -115,6 +132,35 @@ fun NegocioDetalleScreen(negocioId: String, onAtras: () -> Unit) {
                         },
                     )
                 }
+                if (detalle!!.vinculado && detalle!!.tarjetas.isNotEmpty()) {
+                    item {
+                        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            Text("Tus tarjetas", style = MaterialTheme.typography.titleMedium)
+                            Spacer(Modifier.padding(top = 8.dp))
+                            detalle!!.tarjetas.forEach { tarjeta ->
+                                TarjetaCard(
+                                    tarjeta = tarjeta,
+                                    canjeando = canjeandoId == tarjeta.recompensaId,
+                                    logoUrl = detalle!!.logoUrl,
+                                ) {
+                                    scope.launch {
+                                        canjeandoId = tarjeta.recompensaId
+                                        try {
+                                            resultadoCanje = ApiClient.service.canjear(
+                                                CanjeInput(tarjeta.negocio.id, tarjeta.recompensaId),
+                                            ).datoOLanzar().data
+                                        } catch (e: Exception) {
+                                            errorCanje = "No pudimos canjear. Inténtalo de nuevo en un momento."
+                                        } finally {
+                                            canjeandoId = null
+                                        }
+                                    }
+                                }
+                                Spacer(Modifier.padding(top = 10.dp))
+                            }
+                        }
+                    }
+                }
                 resenasResp?.let { r ->
                     item {
                         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -142,6 +188,17 @@ fun NegocioDetalleScreen(negocioId: String, onAtras: () -> Unit) {
             else -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
+        }
+
+        errorCanje?.let { mensaje ->
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { errorCanje = null },
+                title = { Text("No pudimos canjear") },
+                text = { Text(mensaje) },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = { errorCanje = null }) { Text("Ok") }
+                },
+            )
         }
     }
 }

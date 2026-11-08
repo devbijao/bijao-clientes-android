@@ -66,10 +66,26 @@ private const val CLAVE_NOTIFICACIONES = "notificaciones_activadas"
 /** Al estilo "Cuenta de Apple": avatar+nombre llevan el protagonismo arriba,
  * sin verse como una fila más. Equivalente de `PerfilView.swift`. */
 @Composable
-fun PerfilScreen(perfilInicial: Perfil, onPerfilActualizado: (Perfil) -> Unit, onVerHistorial: () -> Unit) {
+fun PerfilScreen(
+    perfilInicial: Perfil,
+    onPerfilActualizado: (Perfil) -> Unit,
+    onVerHistorial: () -> Unit,
+    onVerWallet: () -> Unit,
+    onVerContactos: () -> Unit,
+    onVerCreditos: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
+
+    var miUsuarioPreview by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        try {
+            miUsuarioPreview = ApiClient.service.miUsuario().datoOLanzar().usuario
+        } catch (e: Exception) {
+            // Se intenta de nuevo al abrir Contactos; la fila simplemente no muestra el @.
+        }
+    }
 
     var perfil by remember { mutableStateOf(perfilInicial) }
     var nombre by remember { mutableStateOf(perfilInicial.nombre ?: "") }
@@ -91,7 +107,7 @@ fun PerfilScreen(perfilInicial: Perfil, onPerfilActualizado: (Perfil) -> Unit, o
             perfil = respuesta.data
             onPerfilActualizado(respuesta.data)
         } catch (e: Exception) {
-            error = e.message ?: "No pudimos guardar los cambios."
+            error = "Inténtalo de nuevo en un momento."
         } finally {
             guardando = false
         }
@@ -108,7 +124,7 @@ fun PerfilScreen(perfilInicial: Perfil, onPerfilActualizado: (Perfil) -> Unit, o
             perfil = perfil.copy(avatarUrl = respuesta.avatarUrl)
             onPerfilActualizado(perfil)
         } catch (e: Exception) {
-            errorAvatar = e.message ?: "No pudimos subir la foto."
+            errorAvatar = "Inténtalo de nuevo en un momento."
         } finally {
             subiendoAvatar = false
         }
@@ -192,7 +208,7 @@ fun PerfilScreen(perfilInicial: Perfil, onPerfilActualizado: (Perfil) -> Unit, o
                                     perfil = perfil.copy(avatarUrl = null)
                                     onPerfilActualizado(perfil)
                                 } catch (e: Exception) {
-                                    errorAvatar = e.message ?: "No pudimos quitar la foto."
+                                    errorAvatar = "Inténtalo de nuevo en un momento."
                                 }
                             }
                         }) { Text("Quitar foto", color = MaterialTheme.colorScheme.error) }
@@ -242,6 +258,46 @@ fun PerfilScreen(perfilInicial: Perfil, onPerfilActualizado: (Perfil) -> Unit, o
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text("Historial de compras", modifier = Modifier.weight(1f))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+
+        item {
+            Card(onClick = onVerWallet, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Mi Wallet", modifier = Modifier.weight(1f))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+
+        item {
+            Card(onClick = onVerCreditos, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Mis créditos", modifier = Modifier.weight(1f))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+
+        item {
+            Card(onClick = onVerContactos, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Contactos", modifier = Modifier.weight(1f))
+                    miUsuarioPreview?.let {
+                        Text("@$it", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        androidx.compose.foundation.layout.Spacer(Modifier.padding(start = 8.dp))
+                    }
                     Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
             }

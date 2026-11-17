@@ -11,11 +11,13 @@ import app.bijao.clientes.core.models.CanjeInput
 import app.bijao.clientes.core.models.CanjeResponse
 import app.bijao.clientes.core.models.CategoriasResponse
 import app.bijao.clientes.core.models.CompraDetalle
+import app.bijao.clientes.core.models.ConsumosResponse
 import app.bijao.clientes.core.models.ContactosResponse
 import app.bijao.clientes.core.models.CrearCuentaResponse
 import app.bijao.clientes.core.models.CuentaInput
 import app.bijao.clientes.core.models.CuentasCompartidasResponse
 import app.bijao.clientes.core.models.DejarResenaInput
+import app.bijao.clientes.core.models.DetalleConsumo
 import app.bijao.clientes.core.models.DetalleCreditoResponse
 import app.bijao.clientes.core.models.ListaCreditos
 import app.bijao.clientes.core.models.EstadoSolicitudResponse
@@ -139,6 +141,15 @@ interface ApiService {
 
     @GET("api/app/historial/{id}")
     suspend fun compraDetalle(@Path("id") id: String): Response<Envelope<CompraDetalle>>
+
+    @GET("api/app/consumos")
+    suspend fun consumos(
+        @Query("desde") desde: Int = 0,
+        @Query("limite") limite: Int = 25,
+    ): Response<ConsumosResponse>
+
+    @GET("api/app/consumos/{id}")
+    suspend fun consumoDetalle(@Path("id") id: String): Response<Envelope<DetalleConsumo>>
 
     @GET("api/app/notificaciones")
     suspend fun notificaciones(@Query("limite") limite: Int = 30): Response<NotificacionesResponse>

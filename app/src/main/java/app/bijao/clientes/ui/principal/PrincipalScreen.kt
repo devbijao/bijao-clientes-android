@@ -40,6 +40,7 @@ import app.bijao.clientes.ui.explorar.ExplorarScreen
 import app.bijao.clientes.ui.explorar.NegocioDetalleScreen
 import app.bijao.clientes.ui.favoritos.FavoritosScreen
 import app.bijao.clientes.ui.historial.CompraDetalleScreen
+import app.bijao.clientes.ui.historial.ConsumoDetalleScreen
 import app.bijao.clientes.ui.historial.HistorialScreen
 import app.bijao.clientes.ui.inicio.InicioScreen
 import app.bijao.clientes.ui.inicio.NotificacionesScreen
@@ -200,6 +201,7 @@ fun PrincipalScreen(
                 HistorialScreen(
                     onAtras = { navController.popBackStack() },
                     onCompraClick = { id -> navController.navigate("compra/$id") },
+                    onConsumoClick = { id -> navController.navigate("consumo/$id") },
                 )
             }
             composable(
@@ -208,6 +210,13 @@ fun PrincipalScreen(
             ) { backStackEntry ->
                 val compraId = backStackEntry.arguments?.getString("compraId") ?: return@composable
                 CompraDetalleScreen(compraId = compraId, onAtras = { navController.popBackStack() })
+            }
+            composable(
+                "consumo/{consumoId}",
+                arguments = listOf(navArgument("consumoId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val consumoId = backStackEntry.arguments?.getString("consumoId") ?: return@composable
+                ConsumoDetalleScreen(consumoId = consumoId, onAtras = { navController.popBackStack() })
             }
         }
     }

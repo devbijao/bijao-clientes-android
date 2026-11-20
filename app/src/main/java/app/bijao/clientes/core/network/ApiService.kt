@@ -10,6 +10,7 @@ import app.bijao.clientes.core.models.BusquedaResponse
 import app.bijao.clientes.core.models.CanjeInput
 import app.bijao.clientes.core.models.CanjeResponse
 import app.bijao.clientes.core.models.CategoriasResponse
+import app.bijao.clientes.core.models.EliminarCuentaResponse
 import app.bijao.clientes.core.models.CompraDetalle
 import app.bijao.clientes.core.models.ConsumosResponse
 import app.bijao.clientes.core.models.ContactosResponse
@@ -132,6 +133,11 @@ interface ApiService {
 
     @DELETE("api/app/perfil/avatar")
     suspend fun quitarAvatar(): Response<AvatarResponse>
+
+    /** Borra la cuenta global de Bijao Clientes. Lo exigen Google Play y la App
+     * Store para cualquier app que permita crear cuenta. */
+    @DELETE("api/app/cuenta")
+    suspend fun eliminarCuenta(): Response<EliminarCuentaResponse>
 
     @GET("api/app/historial")
     suspend fun historial(

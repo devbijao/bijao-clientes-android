@@ -50,3 +50,11 @@ data class PerfilUpdateInput(
 
 @Serializable
 data class AvatarResponse(@SerialName("avatar_url") val avatarUrl: String? = null)
+
+/** Respuesta de `DELETE /api/app/cuenta` (derecho de supresión). */
+@Serializable
+data class EliminarCuentaResponse(
+    val mensaje: String = "",
+    @SerialName("auth_eliminado") val authEliminado: Boolean = false,
+    val nota: String? = null,
+)

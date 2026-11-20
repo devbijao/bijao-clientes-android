@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -96,6 +97,9 @@ fun PerfilScreen(
     var subiendoAvatar by remember { mutableStateOf(false) }
     var errorAvatar by remember { mutableStateOf<String?>(null) }
     var notificacionesActivadas by remember { mutableStateOf(prefs.getBoolean(CLAVE_NOTIFICACIONES, true)) }
+    var confirmandoBorrado by remember { mutableStateOf(false) }
+    var borrando by remember { mutableStateOf(false) }
+    var errorBorrado by remember { mutableStateOf<String?>(null) }
 
     suspend fun guardar() {
         guardando = true
@@ -339,6 +343,67 @@ fun PerfilScreen(
                 Text("Cerrar sesión")
             }
         }
+
+        // Derecho de supresión: Google Play y la App Store exigen poder borrar la
+        // cuenta desde la misma app. Discreto, al final, igual que en la web.
+        item {
+            TextButton(
+                onClick = { confirmandoBorrado = true },
+                enabled = !borrando,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Eliminar mi cuenta", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            errorBorrado?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
+
+    if (confirmandoBorrado) {
+        AlertDialog(
+            onDismissRequest = { if (!borrando) confirmandoBorrado = false },
+            title = { Text("¿Eliminar tu cuenta de Bijao Clientes?") },
+            text = {
+                Text(
+                    "Se borra tu cuenta y el vínculo con los negocios donde compras. Tus " +
+                        "compras y sellos siguen siendo registros de cada negocio, como una " +
+                        "factura: eso no desaparece, pero deja de estar unido a ti aquí.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !borrando,
+                    onClick = {
+                        scope.launch {
+                            borrando = true
+                            errorBorrado = null
+                            try {
+                                ApiClient.service.eliminarCuenta().datoOLanzar()
+                                confirmandoBorrado = false
+                                // Sin cuenta no hay sesión que conservar: salir lleva
+                                // de vuelta a la pantalla de entrada.
+                                AuthManager.salir()
+                            } catch (e: Exception) {
+                                errorBorrado = "No pudimos eliminar la cuenta. Inténtalo de nuevo en un momento."
+                                confirmandoBorrado = false
+                            } finally {
+                                borrando = false
+                            }
+                        }
+                    },
+                ) {
+                    if (borrando) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp))
+                    } else {
+                        Text("Sí, eliminar", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(enabled = !borrando, onClick = { confirmandoBorrado = false }) { Text("Cancelar") }
+            },
+        )
     }
 }
 

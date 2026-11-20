@@ -19,6 +19,19 @@ val secretsProperties = Properties().apply {
     if (local.exists()) load(local.inputStream())
 }
 
+// Firma de release (upload key de Google Play). `keystore.properties` vive en la
+// raíz del repo, está gitignorado y apunta a un `.jks` guardado FUERA del repo
+// (ver `keystore.properties.example`). Sin ese archivo el release se compila
+// sin firmar: `assembleDebug` y el desarrollo diario no dependen de la llave.
+// La llave de firma real la custodia Google (Play App Signing); esta es solo la
+// de subida, y si se pierde se puede pedir un reseteo desde Play Console.
+val keystoreProperties = Properties().apply {
+    val archivo = rootProject.file("keystore.properties")
+    if (archivo.exists()) archivo.inputStream().use { load(it) }
+}
+val tieneFirmaRelease = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+    .all { !keystoreProperties.getProperty(it).isNullOrBlank() }
+
 android {
     namespace = "app.bijao.clientes"
     compileSdk = 37
@@ -34,9 +47,23 @@ android {
         manifestPlaceholders["MAPS_API_KEY"] = secretsProperties.getProperty("MAPS_API_KEY", "")
     }
 
+    signingConfigs {
+        if (tieneFirmaRelease) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (tieneFirmaRelease) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

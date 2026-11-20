@@ -17,4 +17,9 @@ captures/
 # Credenciales locales (API keys de Maps, etc.) -- ver secrets.defaults.properties
 secrets.properties
 
+# Firma de release (upload key de Google Play): nunca al repo.
+keystore.properties
+*.jks
+*.keystore
+
 .DS_Store

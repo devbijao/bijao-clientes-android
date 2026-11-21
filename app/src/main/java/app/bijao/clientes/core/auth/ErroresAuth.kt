@@ -1,5 +1,7 @@
 package app.bijao.clientes.core.auth
 
+import app.bijao.clientes.core.network.ApiException
+
 /**
  * Traduce los errores de Supabase Auth a algo que una persona pueda entender
  * y, cuando toca, accionar. Puerto directo de `ErroresAuth.swift` en
@@ -67,6 +69,11 @@ private val REGLAS: List<Regla> = listOf(
 )
 
 fun traducirErrorAuth(error: Throwable): ErrorTraducido {
+    // Errores de nuestro backend (p. ej. pedir el código): su `detail` ya viene
+    // redactado en español para mostrarse tal cual.
+    if (error is ApiException && !error.message.isNullOrBlank()) {
+        return ErrorTraducido(error.message!!)
+    }
     val bruto = error.message ?: error.toString()
     for (regla in REGLAS) {
         val match = regla.patron.find(bruto) ?: continue

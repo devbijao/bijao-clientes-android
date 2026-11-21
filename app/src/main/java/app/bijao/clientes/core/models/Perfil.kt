@@ -58,3 +58,13 @@ data class EliminarCuentaResponse(
     @SerialName("auth_eliminado") val authEliminado: Boolean = false,
     val nota: String? = null,
 )
+
+/** Cuerpo de `POST /api/app/auth/codigo`: exactamente uno de los dos. */
+@Serializable
+data class PedirCodigoInput(
+    val celular: String? = null,
+    val email: String? = null,
+)
+
+@Serializable
+data class PedirCodigoResponse(val ok: Boolean = false, val canal: String? = null)

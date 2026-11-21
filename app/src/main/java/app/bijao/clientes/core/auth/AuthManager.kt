@@ -2,6 +2,9 @@ package app.bijao.clientes.core.auth
 
 import android.content.Intent
 import app.bijao.clientes.core.AppConfig
+import app.bijao.clientes.core.models.PedirCodigoInput
+import app.bijao.clientes.core.network.ApiClient
+import app.bijao.clientes.core.network.datoOLanzar
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.ExternalAuthAction
 import io.github.jan.supabase.auth.FlowType
@@ -11,7 +14,6 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.handleDeeplinks
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.providers.Google
-import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.createSupabaseClient
 import kotlinx.coroutines.flow.StateFlow
 
@@ -60,9 +62,13 @@ object AuthManager {
      * que `auth.session?.user.phone` en iOS. */
     val celularSesion: String? get() = auth.currentUserOrNull()?.phone
 
+    // Pedir el código va por el backend (`POST /api/app/auth/codigo`), no por
+    // `auth.signInWith(OTP)`: el proyecto de Auth de Clientes exige captcha
+    // (Turnstile, para la web) y Supabase respondía `captcha_failed` a la app.
+    // El backend lo pide con la llave de servicio y aplica sus propios topes.
+    // Verificar el código sí sigue directo contra Supabase (no exige captcha).
     suspend fun enviarCodigoSMS(celular10Digitos: String) {
-        val telefono = "${AppConfig.INDICATIVO_TELEFONO}$celular10Digitos"
-        auth.signInWith(OTP) { phone = telefono }
+        ApiClient.service.pedirCodigo(PedirCodigoInput(celular = celular10Digitos)).datoOLanzar()
     }
 
     suspend fun verificarCodigoSMS(celular10Digitos: String, codigo: String) {
@@ -71,7 +77,7 @@ object AuthManager {
     }
 
     suspend fun enviarCodigoCorreo(email: String) {
-        auth.signInWith(OTP) { this.email = email }
+        ApiClient.service.pedirCodigo(PedirCodigoInput(email = email)).datoOLanzar()
     }
 
     suspend fun verificarCodigoCorreo(email: String, codigo: String) {

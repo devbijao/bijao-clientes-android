@@ -11,6 +11,8 @@ import app.bijao.clientes.core.models.CanjeInput
 import app.bijao.clientes.core.models.CanjeResponse
 import app.bijao.clientes.core.models.CategoriasResponse
 import app.bijao.clientes.core.models.EliminarCuentaResponse
+import app.bijao.clientes.core.models.PedirCodigoInput
+import app.bijao.clientes.core.models.PedirCodigoResponse
 import app.bijao.clientes.core.models.CompraDetalle
 import app.bijao.clientes.core.models.ConsumosResponse
 import app.bijao.clientes.core.models.ContactosResponse
@@ -138,6 +140,12 @@ interface ApiService {
      * Store para cualquier app que permita crear cuenta. */
     @DELETE("api/app/cuenta")
     suspend fun eliminarCuenta(): Response<EliminarCuentaResponse>
+
+    /** Pide el código de acceso (OTP) por SMS o correo. Va por el backend y no
+     * directo a Supabase porque el proyecto de Auth exige captcha, y la app
+     * nativa no lo muestra. Es público: no lleva token. */
+    @POST("api/app/auth/codigo")
+    suspend fun pedirCodigo(@Body body: PedirCodigoInput): Response<PedirCodigoResponse>
 
     @GET("api/app/historial")
     suspend fun historial(

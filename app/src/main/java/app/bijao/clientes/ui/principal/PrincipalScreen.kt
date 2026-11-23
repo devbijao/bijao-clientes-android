@@ -49,9 +49,6 @@ import app.bijao.clientes.ui.wallet.WalletScreen
 
 private data class Tab(val ruta: String, val etiqueta: String, val icono: androidx.compose.ui.graphics.vector.ImageVector)
 
-/** Mismo gris de borde que `--border` en la web (`globals.css`). */
-private val GrisBordeTabs = Color(0xFFE2E8F0)
-
 private val TABS = listOf(
     Tab("inicio", "Inicio", Icons.Filled.Home),
     Tab("explorar", "Explorar", Icons.Filled.Explore),
@@ -74,6 +71,7 @@ fun PrincipalScreen(
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val rutaActual = backStackEntry?.destination?.route
+    val bordeTabs = MaterialTheme.colorScheme.outline
 
     Scaffold(
         bottomBar = {
@@ -86,7 +84,7 @@ fun PrincipalScreen(
                 tonalElevation = 0.dp,
                 modifier = Modifier.drawBehind {
                     drawLine(
-                        color = GrisBordeTabs,
+                        color = bordeTabs,
                         start = Offset(0f, 0f),
                         end = Offset(size.width, 0f),
                         strokeWidth = 1.dp.toPx(),

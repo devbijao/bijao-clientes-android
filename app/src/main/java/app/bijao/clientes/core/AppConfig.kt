@@ -36,4 +36,11 @@ object AppConfig {
      * también. */
     const val OAUTH_SCHEME = "bijaoclientes"
     const val OAUTH_HOST = "auth-callback"
+
+    /** Mismos documentos que sirve la web y enlaza iOS (`AppConfig.Legal`). */
+    object Legal {
+        const val TERMINOS = "https://bijao.app/legal/terminos.html"
+        const val PRIVACIDAD = "https://bijao.app/legal/privacidad.html"
+        const val COOKIES = "https://bijao.app/legal/cookies.html"
+    }
 }

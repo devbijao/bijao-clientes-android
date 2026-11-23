@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Variante oscura de la sombrilla del sistema: sin esto, en modo oscuro
+         la ventana arranca blanca antes de que Compose pinte. -->
+    <style name="Theme.BijaoClientes" parent="android:Theme.Material.NoActionBar" />
+</resources>

@@ -15,6 +15,8 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -28,6 +30,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import app.bijao.clientes.EnlacesEntrantes
 import app.bijao.clientes.ui.beneficios.BeneficiosScreen
 import app.bijao.clientes.ui.comunidad.ComunidadScreen
 import app.bijao.clientes.ui.comunidad.EventoComunidadScreen
@@ -74,6 +77,21 @@ fun PrincipalScreen(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val rutaActual = backStackEntry?.destination?.route
     val bordeTabs = MaterialTheme.colorScheme.outline
+
+    // QR de un evento de Comunidad (ver `EnlacesEntrantes`): Perfil ›
+    // Comunidad › evento, igual que si la persona hubiera llegado tocando.
+    // Si el enlace llegó sin sesión, esto corre apenas termina el login.
+    val eventoPendiente by EnlacesEntrantes.eventoComunidad.collectAsState()
+    LaunchedEffect(eventoPendiente) {
+        val slug = eventoPendiente ?: return@LaunchedEffect
+        navController.navigate("perfil") {
+            popUpTo(navController.graph.findStartDestination().id)
+            launchSingleTop = true
+        }
+        navController.navigate("comunidad")
+        navController.navigate("comunidad/$slug")
+        EnlacesEntrantes.consumirEventoComunidad()
+    }
 
     Scaffold(
         bottomBar = {

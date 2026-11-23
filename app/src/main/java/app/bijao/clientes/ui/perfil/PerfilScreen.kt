@@ -74,6 +74,7 @@ fun PerfilScreen(
     onVerWallet: () -> Unit,
     onVerContactos: () -> Unit,
     onVerCreditos: () -> Unit,
+    onVerComunidad: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -286,6 +287,18 @@ fun PerfilScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text("Mis créditos", modifier = Modifier.weight(1f))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+
+        item {
+            Card(onClick = onVerComunidad, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Comunidad", modifier = Modifier.weight(1f))
                     Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
             }

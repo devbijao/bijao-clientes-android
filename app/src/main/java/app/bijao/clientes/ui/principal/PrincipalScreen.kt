@@ -29,6 +29,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.bijao.clientes.ui.beneficios.BeneficiosScreen
+import app.bijao.clientes.ui.comunidad.ComunidadScreen
+import app.bijao.clientes.ui.comunidad.EventoComunidadScreen
 import app.bijao.clientes.ui.beneficios.ValesScreen
 import app.bijao.clientes.core.models.Perfil
 import app.bijao.clientes.ui.contactos.ContactosScreen
@@ -193,7 +195,21 @@ fun PrincipalScreen(
                     onVerWallet = { navController.navigate("wallet") },
                     onVerContactos = { navController.navigate("contactos") },
                     onVerCreditos = { navController.navigate("creditos") },
+                    onVerComunidad = { navController.navigate("comunidad") },
                 )
+            }
+            composable("comunidad") {
+                ComunidadScreen(
+                    onAtras = { navController.popBackStack() },
+                    onEventoClick = { slug -> navController.navigate("comunidad/$slug") },
+                )
+            }
+            composable(
+                "comunidad/{slug}",
+                arguments = listOf(navArgument("slug") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val slug = backStackEntry.arguments?.getString("slug") ?: return@composable
+                EventoComunidadScreen(slug = slug, onAtras = { navController.popBackStack() })
             }
             composable("historial") {
                 HistorialScreen(

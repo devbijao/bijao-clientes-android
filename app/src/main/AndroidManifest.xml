@@ -41,6 +41,22 @@
                     android:scheme="bijaoclientes"
                     android:host="auth-callback" />
             </intent-filter>
+
+            <!-- App Links: el QR de un evento de Bijao Comunidad
+                 (https://clientes.bijao.app/comunidad/<slug>, que la web
+                 redirige a /perfil/comunidad/<slug>) abre la app si está
+                 instalada; si no, sigue abriendo la web. Lo autoriza el
+                 .well-known/assetlinks.json que publica el monorepo. Va en un
+                 filtro aparte del de OAuth: autoVerify exige solo http/https. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="clientes.bijao.app" />
+                <data android:pathPrefix="/comunidad/" />
+                <data android:pathPrefix="/perfil/comunidad/" />
+            </intent-filter>
         </activity>
 
         <!-- Para abrir/compartir la factura en PDF generada en el caché:

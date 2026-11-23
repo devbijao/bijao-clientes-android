@@ -18,6 +18,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         completarOAuthSiAplica(intent)
+        // Solo en el arranque "de verdad": al recrearse la Activity (rotar,
+        // modo oscuro) llega el mismo intent y reabriría el evento.
+        if (savedInstanceState == null) EnlacesEntrantes.abrir(intent)
         setContent {
             BijaoClientesTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
@@ -27,12 +30,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // `launchMode="singleTask"` hace que el deep link de vuelta de Google
-    // reuse esta misma Activity en vez de crear una nueva -- por eso el
-    // intent llega acá y no a un `onCreate` nuevo.
+    // `launchMode="singleTask"` hace que el deep link de vuelta de Google (y
+    // el App Link de un evento de Comunidad con la app ya abierta) reuse esta
+    // misma Activity en vez de crear una nueva -- por eso el intent llega acá
+    // y no a un `onCreate` nuevo.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         completarOAuthSiAplica(intent)
+        EnlacesEntrantes.abrir(intent)
     }
 
     private fun completarOAuthSiAplica(intent: Intent) {

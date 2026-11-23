@@ -458,8 +458,15 @@ private fun PreguntaCompacta(p: PreguntaComunidad) {
                 modifier = Modifier.rotate(giro),
             )
         }
+        // El hilo va sobre el fondo de pantalla: las burbujas ajenas usan el
+        // mismo color que esta tarjeta y no se distinguirían.
         AnimatedVisibility(abierto) {
-            Box(Modifier.padding(top = 12.dp)) { Hilo(p, vivo = false) }
+            Box(
+                Modifier
+                    .padding(top = 12.dp)
+                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(14.dp))
+                    .padding(10.dp),
+            ) { Hilo(p, vivo = false) }
         }
     }
 }

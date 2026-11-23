@@ -11,6 +11,10 @@ import app.bijao.clientes.core.models.CanjeInput
 import app.bijao.clientes.core.models.CanjeResponse
 import app.bijao.clientes.core.models.CategoriasResponse
 import app.bijao.clientes.core.models.EliminarCuentaResponse
+import app.bijao.clientes.core.models.EstadoComunidad
+import app.bijao.clientes.core.models.MiEventoComunidad
+import app.bijao.clientes.core.models.ResponderComunidadInput
+import app.bijao.clientes.core.models.RespuestaComunidadCreada
 import app.bijao.clientes.core.models.PedirCodigoInput
 import app.bijao.clientes.core.models.PedirCodigoResponse
 import app.bijao.clientes.core.models.CompraDetalle
@@ -140,6 +144,23 @@ interface ApiService {
      * Store para cualquier app que permita crear cuenta. */
     @DELETE("api/app/cuenta")
     suspend fun eliminarCuenta(): Response<EliminarCuentaResponse>
+
+    // Comunidad (eventos en vivo) -- ver `backend/routers/app_comunidad.py`.
+    @GET("api/app/comunidad/eventos")
+    suspend fun misEventosComunidad(): Response<List<MiEventoComunidad>>
+
+    @GET("api/app/comunidad/{slug}/estado")
+    suspend fun estadoComunidad(
+        @Path("slug") slug: String,
+        @Query("version") version: Int? = null,
+    ): Response<EstadoComunidad>
+
+    @POST("api/app/comunidad/{slug}/preguntas/{preguntaId}/respuestas")
+    suspend fun responderComunidad(
+        @Path("slug") slug: String,
+        @Path("preguntaId") preguntaId: String,
+        @Body body: ResponderComunidadInput,
+    ): Response<RespuestaComunidadCreada>
 
     /** Pide el código de acceso (OTP) por SMS o correo. Va por el backend y no
      * directo a Supabase porque el proyecto de Auth exige captcha, y la app

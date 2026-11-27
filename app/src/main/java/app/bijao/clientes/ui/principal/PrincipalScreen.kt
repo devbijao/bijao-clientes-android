@@ -37,7 +37,11 @@ import app.bijao.clientes.ui.comunidad.EventoComunidadScreen
 import app.bijao.clientes.ui.beneficios.BonoDetalleScreen
 import app.bijao.clientes.ui.beneficios.TarjetaDetalleScreen
 import app.bijao.clientes.core.models.Perfil
+import app.bijao.clientes.ui.contactos.AjustesContactosScreen
 import app.bijao.clientes.ui.contactos.ContactosScreen
+import app.bijao.clientes.ui.contactos.PerfilPersonaScreen
+import app.bijao.clientes.ui.contactos.SolicitudesScreen
+import app.bijao.clientes.ui.perfil.EditarPerfilScreen
 import app.bijao.clientes.ui.creditos.CreditoDetalleScreen
 import app.bijao.clientes.ui.creditos.CreditosScreen
 import app.bijao.clientes.ui.cuentas.DividirScreen
@@ -160,7 +164,29 @@ fun PrincipalScreen(
                 )
             }
             composable("contactos") {
-                ContactosScreen(onAtras = { navController.popBackStack() })
+                ContactosScreen(
+                    miPerfil = perfil,
+                    onAtras = { navController.popBackStack() },
+                    onPersona = { usuario -> navController.navigate("persona/$usuario") },
+                    onSolicitudes = { navController.navigate("contactos/solicitudes") },
+                    onAjustes = { navController.navigate("contactos/ajustes") },
+                )
+            }
+            composable("contactos/solicitudes") {
+                SolicitudesScreen(
+                    onAtras = { navController.popBackStack() },
+                    onPersona = { usuario -> navController.navigate("persona/$usuario") },
+                )
+            }
+            composable("contactos/ajustes") {
+                AjustesContactosScreen(onAtras = { navController.popBackStack() })
+            }
+            composable(
+                "persona/{usuario}",
+                arguments = listOf(navArgument("usuario") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val usuario = backStackEntry.arguments?.getString("usuario") ?: return@composable
+                PerfilPersonaScreen(usuario = usuario, onAtras = { navController.popBackStack() })
             }
             composable("creditos") {
                 CreditosScreen(
@@ -226,12 +252,19 @@ fun PrincipalScreen(
             }
             composable("perfil") {
                 PerfilScreen(
-                    perfilInicial = perfil,
-                    onPerfilActualizado = onPerfilActualizado,
+                    perfil = perfil,
+                    onEditar = { navController.navigate("perfil/editar") },
                     onVerHistorial = { navController.navigate("historial") },
                     onVerContactos = { navController.navigate("contactos") },
                     onVerCreditos = { navController.navigate("creditos") },
                     onVerComunidad = { navController.navigate("comunidad") },
+                )
+            }
+            composable("perfil/editar") {
+                EditarPerfilScreen(
+                    perfil = perfil,
+                    onPerfilActualizado = onPerfilActualizado,
+                    onCerrar = { navController.popBackStack() },
                 )
             }
             composable("comunidad") {

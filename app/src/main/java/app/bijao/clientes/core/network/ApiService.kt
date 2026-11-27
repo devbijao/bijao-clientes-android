@@ -1,6 +1,8 @@
 package app.bijao.clientes.core.network
 
 import app.bijao.clientes.core.models.AvatarResponse
+import app.bijao.clientes.core.models.PerfilPersona
+import app.bijao.clientes.core.models.PortadaResponse
 import app.bijao.clientes.core.models.AvisoPagoInput
 import app.bijao.clientes.core.models.AvisoPagoResponse
 import app.bijao.clientes.core.models.AvisosPagoResponse
@@ -157,6 +159,17 @@ interface ApiService {
 
     @DELETE("api/app/perfil/avatar")
     suspend fun quitarAvatar(): Response<AvatarResponse>
+
+    @Multipart
+    @POST("api/app/perfil/portada")
+    suspend fun subirPortada(@Part file: MultipartBody.Part): Response<PortadaResponse>
+
+    @DELETE("api/app/perfil/portada")
+    suspend fun quitarPortada(): Response<PortadaResponse>
+
+    /** 404 si no existe, hay bloqueo o es un perfil restringido sin conexión. */
+    @GET("api/app/contactos/perfil/{usuario}")
+    suspend fun perfilDe(@Path("usuario") usuario: String): Response<Envelope<PerfilPersona>>
 
     /** Borra la cuenta global de Bijao Clientes. Lo exigen Google Play y la App
      * Store para cualquier app que permita crear cuenta. */

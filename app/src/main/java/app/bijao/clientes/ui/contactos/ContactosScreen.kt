@@ -1,486 +1,250 @@
 package app.bijao.clientes.ui.contactos
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.PersonRemove
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.PersonAddAlt1
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import app.bijao.clientes.core.models.ContactoItem
+import app.bijao.clientes.core.models.Perfil
 import app.bijao.clientes.core.models.PersonaBusqueda
-import app.bijao.clientes.core.models.RestriccionInput
-import app.bijao.clientes.core.models.SolicitudInput
 import app.bijao.clientes.core.models.SolicitudItem
-import app.bijao.clientes.core.models.UsuarioInput
 import app.bijao.clientes.core.network.ApiClient
 import app.bijao.clientes.core.network.datoOLanzar
-import app.bijao.clientes.core.ui.ColorExito
+import app.bijao.clientes.core.ui.FotoPerfil
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import java.text.Normalizer
 
-private enum class Pestana { CONTACTOS, SOLICITUDES, BLOQUEADOS }
+internal fun normalizar(s: String) =
+    Normalizer.normalize(s, Normalizer.Form.NFD).replace("\\p{Mn}+".toRegex(), "").lowercase()
 
 /**
- * Contactos (Fase S1) -- tu @, buscar por @ o nombre, solicitudes con
- * aceptación y bloqueados. Espejo de `frontend/app/(app-clientes)/contactos/page.tsx`
- * y de `ContactosView.swift`. Solo se puede encontrar a quien eligió un @; de
- * los demás nunca se ve más que nombre, @ y foto -- nunca celular ni correo.
+ * Contactos al estilo «Nuevo chat» de WhatsApp (F2 de
+ * `MDs/plan_apps_nativas_previo_revision.md`): arriba tú, luego las
+ * solicitudes, un buscador por nombre o @ y la lista con foto, nombre e info,
+ * agrupada por letra. Tocar a alguien abre su perfil grande, con «Seguir» (= la
+ * solicitud de conexión de siempre) si aún no es contacto. Tu @, el perfil
+ * restringido y los bloqueados viven en el engranaje. Equivalente de
+ * `ContactosView.swift`.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ContactosScreen(onAtras: () -> Unit) {
-    val scope = rememberCoroutineScope()
-
+fun ContactosScreen(
+    miPerfil: Perfil?,
+    onAtras: () -> Unit,
+    onPersona: (String) -> Unit,
+    onSolicitudes: () -> Unit,
+    onAjustes: () -> Unit,
+) {
+    val ciclo = LocalLifecycleOwner.current.lifecycle
     var miUsuario by remember { mutableStateOf<String?>(null) }
-    var editandoUsuario by remember { mutableStateOf(false) }
-    var borrador by remember { mutableStateOf("") }
-    var guardandoUsuario by remember { mutableStateOf(false) }
-    var errorUsuario by remember { mutableStateOf<String?>(null) }
-
-    var restringido by remember { mutableStateOf(false) }
-    var cambiandoRestriccion by remember { mutableStateOf(false) }
-
-    var contactos by remember { mutableStateOf(listOf<ContactoItem>()) }
-    var recibidas by remember { mutableStateOf(listOf<SolicitudItem>()) }
-    var enviadas by remember { mutableStateOf(listOf<SolicitudItem>()) }
-    var bloqueados by remember { mutableStateOf(listOf<ContactoItem>()) }
+    var contactos by remember { mutableStateOf<List<ContactoItem>>(emptyList()) }
+    var recibidas by remember { mutableStateOf<List<SolicitudItem>>(emptyList()) }
+    var enviadas by remember { mutableStateOf<List<SolicitudItem>>(emptyList()) }
     var cargando by remember { mutableStateOf(true) }
-    var pestana by remember { mutableStateOf(Pestana.CONTACTOS) }
-    var yaElegioPestanaInicial by remember { mutableStateOf(false) }
-
+    var error by remember { mutableStateOf<String?>(null) }
     var q by remember { mutableStateOf("") }
     var resultados by remember { mutableStateOf<List<PersonaBusqueda>?>(null) }
-    var buscando by remember { mutableStateOf(false) }
-    var accion by remember { mutableStateOf<String?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
 
-    var personaABloquear by remember { mutableStateOf<Pair<String, String?>?>(null) }
-    var contactoAEliminar by remember { mutableStateOf<ContactoItem?>(null) }
-
-    suspend fun cargar() {
-        cargando = true
-        error = null
-        try {
-            val u = ApiClient.service.miUsuario().datoOLanzar()
-            val c = ApiClient.service.misContactos().datoOLanzar()
-            val s = ApiClient.service.misSolicitudes().datoOLanzar()
-            val b = ApiClient.service.misBloqueos().datoOLanzar()
-            miUsuario = u.usuario
-            restringido = u.restringido
-            contactos = c.data
-            recibidas = s.recibidas
-            enviadas = s.enviadas
-            bloqueados = b.data
-            if (!yaElegioPestanaInicial) {
-                yaElegioPestanaInicial = true
-                if (recibidas.isNotEmpty()) pestana = Pestana.SOLICITUDES
+    // Se recarga cada vez que la pantalla vuelve a primer plano (al volver del
+    // perfil de alguien después de seguir, aceptar o bloquear).
+    LaunchedEffect(Unit) {
+        ciclo.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            try {
+                miUsuario = ApiClient.service.miUsuario().datoOLanzar().usuario
+                contactos = ApiClient.service.misContactos().datoOLanzar().data
+                val s = ApiClient.service.misSolicitudes().datoOLanzar()
+                recibidas = s.recibidas
+                enviadas = s.enviadas
+                error = null
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                error = "No pudimos cargar tus contactos."
             }
-        } catch (e: Exception) {
-            error = "No pudimos cargar tus contactos."
+            cargando = false
         }
-        cargando = false
     }
 
-    LaunchedEffect(Unit) { cargar() }
-
-    LaunchedEffect(q) {
-        val termino = q.trim().removePrefix("@")
-        if (termino.length < 3) {
+    LaunchedEffect(q, miUsuario) {
+        val termino = q.trim().trimStart('@')
+        if (termino.length < 3 || miUsuario == null) {
             resultados = null
-            buscando = false
             return@LaunchedEffect
         }
-        buscando = true
         delay(350)
-        try {
-            val r = ApiClient.service.buscarPersonas(termino).datoOLanzar()
-            resultados = r.data
+        resultados = try {
+            ApiClient.service.buscarPersonas(termino).datoOLanzar().data
         } catch (e: Exception) {
-            error = "No pudimos buscar."
+            if (e is CancellationException) throw e
+            emptyList()
         }
-        buscando = false
     }
+
+    val termino = normalizar(q.trim().trimStart('@'))
+    val filtrados = if (termino.isEmpty()) contactos else contactos.filter { c ->
+        listOfNotNull(c.nombre, c.usuario).any { normalizar(it).contains(termino) }
+    }
+    val porLetra = filtrados
+        .groupBy { c -> normalizar(c.nombre ?: c.usuario ?: "").take(1).uppercase().takeIf { it.firstOrNull()?.isLetter() == true } ?: "#" }
+        .toSortedMap(compareBy<String> { it == "#" }.thenBy { it })
+    val nuevas = resultados.orEmpty().filter { it.relacion != "CONTACTO" }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Contactos") },
-                navigationIcon = { IconButton(onClick = onAtras) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás") } },
+                navigationIcon = { IconButton(onClick = onAtras) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") } },
+                actions = { IconButton(onClick = onAjustes) { Icon(Icons.Filled.Settings, contentDescription = "Tu @ y privacidad") } },
             )
         },
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
+        LazyColumn(Modifier.fillMaxSize().padding(padding)) {
             item {
-                Text("Tu @", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.padding(top = 4.dp))
-                if (!editandoUsuario) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(miUsuario?.let { "@$it" } ?: "No pudimos crearlo; elige uno", modifier = Modifier.weight(1f))
-                        TextButton(onClick = { borrador = miUsuario ?: ""; editandoUsuario = true }) {
-                            Text(if (miUsuario != null) "Cambiar" else "Elegir")
-                        }
-                    }
-                } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
-                            value = borrador,
-                            onValueChange = { borrador = it },
-                            placeholder = { Text("ana.perez") },
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = KeyboardCapitalization.None),
-                            modifier = Modifier.weight(1f),
-                        )
-                        Spacer(Modifier.padding(start = 8.dp))
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    guardandoUsuario = true
-                                    errorUsuario = null
-                                    try {
-                                        val r = ApiClient.service.elegirUsuario(UsuarioInput(borrador)).datoOLanzar()
-                                        miUsuario = r.usuario
-                                        editandoUsuario = false
-                                    } catch (e: Exception) {
-                                        errorUsuario = "No pudimos guardar tu @. Puede que ya esté en uso."
-                                    }
-                                    guardandoUsuario = false
-                                }
-                            },
-                            enabled = !guardandoUsuario && borrador.trim().length >= 3,
-                        ) {
-                            if (guardandoUsuario) CircularProgressIndicator(modifier = Modifier.size(18.dp)) else Text("Guardar")
-                        }
-                    }
-                    errorUsuario?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall) }
-                }
-                Text(
-                    "Lo creamos con tu nombre; puedes cambiarlo cuando quieras. Nunca verán tu celular ni tu correo.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                OutlinedTextField(
+                    value = q, onValueChange = { q = it },
+                    placeholder = { Text("Nombre o @usuario") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    singleLine = true, shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
-
-            if (miUsuario != null) {
-                item {
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Restringir perfil", style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                if (restringido) "Nadie te encuentra en las búsquedas; solo conectas si tú mandas la solicitud."
-                                else "Nadie podrá enviarte solicitudes; tú sí podrás enviar.",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Switch(
-                            checked = restringido,
-                            onCheckedChange = { nuevo ->
-                                scope.launch {
-                                    if (cambiandoRestriccion) return@launch
-                                    cambiandoRestriccion = true
-                                    try {
-                                        ApiClient.service.restringirPerfil(RestriccionInput(nuevo)).datoOLanzar()
-                                        restringido = nuevo
-                                    } catch (e: Exception) {
-                                        error = "No pudimos cambiar la privacidad."
-                                    }
-                                    cambiandoRestriccion = false
-                                }
-                            },
-                            enabled = !cambiandoRestriccion,
-                        )
+            item {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    FotoPerfil(miPerfil?.avatarUrl, miPerfil?.nombre ?: miUsuario, tamano = 52.dp)
+                    Column(Modifier.padding(start = 12.dp)) {
+                        Text("${miUsuario?.let { "@$it" } ?: miPerfil?.nombre ?: "Tú"} (Tú)", fontWeight = FontWeight.SemiBold)
+                        Text(miPerfil?.bio?.takeIf { it.isNotBlank() } ?: "Así te ven tus contactos.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+                            style = MaterialTheme.typography.bodyMedium)
                     }
                 }
-
+            }
+            if (recibidas.isNotEmpty() || enviadas.isNotEmpty()) {
                 item {
-                    OutlinedTextField(
-                        value = q,
-                        onValueChange = { q = it },
-                        placeholder = { Text("Buscar por @ o nombre") },
-                        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                        trailingIcon = { if (buscando) CircularProgressIndicator(modifier = Modifier.size(18.dp)) },
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = KeyboardCapitalization.None),
-                        modifier = Modifier.fillMaxWidth(),
+                    Row(
+                        Modifier.fillMaxWidth().clickable(onClick = onSolicitudes).padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Filled.PersonAddAlt1, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text("Solicitudes", modifier = Modifier.weight(1f).padding(start = 16.dp))
+                        if (recibidas.isNotEmpty()) {
+                            Text("${recibidas.size}", color = Color.White, fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary).padding(horizontal = 8.dp, vertical = 2.dp))
+                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp).padding(2.dp))
+                    }
+                }
+            }
+            error?.let { item { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) } }
+            when {
+                cargando && contactos.isEmpty() -> item {
+                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                }
+                contactos.isEmpty() && q.isBlank() -> item {
+                    Text(
+                        if (miUsuario == null) "Elige tu @ en el engranaje de arriba para buscar y conectar con otras personas."
+                        else "Aún no tienes contactos. Búscalos por su nombre o @.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(16.dp),
                     )
                 }
-
-                resultados?.let { lista ->
-                    if (lista.isEmpty() && !buscando) {
-                        item { Text("No encontramos a nadie con ese nombre o @.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                else -> porLetra.forEach { (letra, lista) ->
+                    item(key = "letra-$letra") {
+                        Text(letra, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 4.dp))
                     }
-                    items(lista, key = { it.usuario ?: it.nombre.orEmpty() }) { p ->
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            FilaPersona(nombre = p.nombre, usuario = p.usuario, modifier = Modifier.weight(1f))
-                            when (p.relacion) {
-                                "CONTACTO" -> Text("Contacto", color = ColorExito, style = MaterialTheme.typography.labelMedium)
-                                "ENVIADA" -> Text("Enviada", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
-                                "NINGUNA", "RECIBIDA" -> OutlinedButton(
-                                    onClick = {
-                                        val usuario = p.usuario ?: return@OutlinedButton
-                                        scope.launch {
-                                            accion = "pedir:$usuario"
-                                            try {
-                                                val r = ApiClient.service.pedirConexion(SolicitudInput(usuario)).datoOLanzar()
-                                                resultados = resultados?.map { x ->
-                                                    if (x.usuario == usuario) x.copy(relacion = if (r.estado == "ACEPTADA") "CONTACTO" else "ENVIADA") else x
-                                                }
-                                                cargar()
-                                            } catch (e: Exception) {
-                                                error = "No pudimos completar la acción."
-                                            }
-                                            accion = null
-                                        }
-                                    },
-                                    enabled = accion != "pedir:${p.usuario}",
-                                ) { Icon(Icons.Filled.PersonAdd, contentDescription = null); Text(if (p.relacion == "RECIBIDA") " Aceptar" else " Conectar") }
-                            }
-                            p.usuario?.let { usuario ->
-                                IconButton(onClick = { personaABloquear = usuario to p.nombre }) {
-                                    Icon(Icons.Filled.Block, contentDescription = "Bloquear", tint = MaterialTheme.colorScheme.error)
-                                }
-                            }
-                        }
+                    items(lista.sortedBy { normalizar(it.nombre ?: it.usuario ?: "") }, key = { it.id }) { c ->
+                        FilaPersona(c.nombre, c.usuario, c.avatarUrl, c.bio) { c.usuario?.let(onPersona) }
                     }
-                }
-            } else {
-                item { Text("Elige tu @ para poder buscar y conectar con otras personas.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            }
-
-            error?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
-
-            item {
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    SegmentedButton(
-                        selected = pestana == Pestana.CONTACTOS,
-                        onClick = { pestana = Pestana.CONTACTOS },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
-                    ) { Text(if (contactos.isEmpty()) "Contactos" else "Contactos (${contactos.size})") }
-                    SegmentedButton(
-                        selected = pestana == Pestana.SOLICITUDES,
-                        onClick = { pestana = Pestana.SOLICITUDES },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
-                    ) { Text(if (recibidas.isEmpty()) "Solicitudes" else "Solicitudes (${recibidas.size})") }
-                    SegmentedButton(
-                        selected = pestana == Pestana.BLOQUEADOS,
-                        onClick = { pestana = Pestana.BLOQUEADOS },
-                        shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                    ) { Text("Bloqueados") }
                 }
             }
-
-            if (cargando) {
-                item { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
-            } else when (pestana) {
-                Pestana.CONTACTOS -> if (contactos.isEmpty()) {
-                    item { Text("Aún no tienes contactos. Búscalos por su @.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                } else {
-                    items(contactos, key = { it.id }) { c ->
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            FilaPersona(nombre = c.nombre, usuario = c.usuario, modifier = Modifier.weight(1f))
-                            IconButton(onClick = { contactoAEliminar = c }) {
-                                Icon(Icons.Filled.PersonRemove, contentDescription = "Eliminar contacto")
-                            }
-                            c.usuario?.let { usuario ->
-                                IconButton(onClick = { personaABloquear = usuario to c.nombre }) {
-                                    Icon(Icons.Filled.Block, contentDescription = "Bloquear", tint = MaterialTheme.colorScheme.error)
-                                }
-                            }
-                        }
-                    }
+            if (q.isNotBlank() && miUsuario != null) {
+                item {
+                    Text("Más personas en Bijao", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 4.dp))
                 }
-
-                Pestana.SOLICITUDES -> {
-                    if (recibidas.isEmpty() && enviadas.isEmpty()) {
-                        item { Text("No tienes solicitudes pendientes.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                if (nuevas.isEmpty()) {
+                    item {
+                        Text(
+                            if (termino.length < 3) "Escribe al menos 3 letras para buscar en Bijao." else "No encontramos a nadie más con ese nombre o @.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
                     }
-                    if (recibidas.isNotEmpty()) {
-                        item { Text("Recibidas", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                        items(recibidas, key = { it.id }) { s ->
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                                FilaPersona(nombre = s.nombre, usuario = s.usuario, modifier = Modifier.weight(1f))
-                                Button(
-                                    onClick = {
-                                        scope.launch {
-                                            accion = "ok:${s.id}"
-                                            try {
-                                                ApiClient.service.aceptarSolicitud(s.id).datoOLanzar()
-                                                cargar()
-                                            } catch (e: Exception) {
-                                                error = "No pudimos aceptar la solicitud."
-                                            }
-                                            accion = null
-                                        }
-                                    },
-                                    enabled = accion != "ok:${s.id}",
-                                ) { Text("Aceptar") }
-                                Spacer(Modifier.padding(start = 6.dp))
-                                OutlinedButton(
-                                    onClick = {
-                                        scope.launch {
-                                            accion = "no:${s.id}"
-                                            try {
-                                                ApiClient.service.quitarSolicitud(s.id).datoOLanzar()
-                                                cargar()
-                                            } catch (e: Exception) {
-                                                error = "No pudimos completar la acción."
-                                            }
-                                            accion = null
-                                        }
-                                    },
-                                    enabled = accion != "no:${s.id}",
-                                ) { Text("Ignorar") }
-                            }
-                        }
-                    }
-                    if (enviadas.isNotEmpty()) {
-                        item { Text("Enviadas", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                        items(enviadas, key = { it.id }) { s ->
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                                FilaPersona(nombre = s.nombre, usuario = s.usuario, modifier = Modifier.weight(1f))
-                                OutlinedButton(
-                                    onClick = {
-                                        scope.launch {
-                                            accion = "no:${s.id}"
-                                            try {
-                                                ApiClient.service.quitarSolicitud(s.id).datoOLanzar()
-                                                cargar()
-                                            } catch (e: Exception) {
-                                                error = "No pudimos completar la acción."
-                                            }
-                                            accion = null
-                                        }
-                                    },
-                                    enabled = accion != "no:${s.id}",
-                                ) { Text("Cancelar") }
-                            }
-                        }
-                    }
-                }
-
-                Pestana.BLOQUEADOS -> if (bloqueados.isEmpty()) {
-                    item { Text("No has bloqueado a nadie.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 } else {
-                    items(bloqueados, key = { it.id }) { b ->
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            FilaPersona(nombre = b.nombre, usuario = b.usuario, modifier = Modifier.weight(1f))
-                            OutlinedButton(
-                                onClick = {
-                                    scope.launch {
-                                        accion = "desb:${b.id}"
-                                        try {
-                                            ApiClient.service.desbloquearPersona(b.id).datoOLanzar()
-                                            cargar()
-                                        } catch (e: Exception) {
-                                            error = "No pudimos desbloquear a esa persona."
-                                        }
-                                        accion = null
-                                    }
-                                },
-                                enabled = accion != "desb:${b.id}",
-                            ) { Text("Desbloquear") }
+                    items(nuevas, key = { "n-${it.usuario}" }) { p ->
+                        FilaPersona(p.nombre, p.usuario, p.avatarUrl, p.bio,
+                            etiqueta = when (p.relacion) { "ENVIADA" -> "Solicitud enviada"; "RECIBIDA" -> "Te pidió conectar"; else -> null }) {
+                            p.usuario?.let(onPersona)
                         }
                     }
                 }
             }
         }
     }
-
-    personaABloquear?.let { (usuario, nombre) ->
-        AlertDialog(
-            onDismissRequest = { personaABloquear = null },
-            title = { Text("¿Bloquear a ${nombre ?: "@$usuario"}?") },
-            text = { Text("Dejarán de verse y se cancelará la conexión.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    personaABloquear = null
-                    scope.launch {
-                        accion = "bloq:$usuario"
-                        try {
-                            ApiClient.service.bloquearPersona(SolicitudInput(usuario)).datoOLanzar()
-                            resultados = resultados?.filterNot { it.usuario == usuario }
-                            cargar()
-                        } catch (e: Exception) {
-                            error = "No pudimos bloquear a esa persona."
-                        }
-                        accion = null
-                    }
-                }) { Text("Bloquear") }
-            },
-            dismissButton = { TextButton(onClick = { personaABloquear = null }) { Text("Cancelar") } },
-        )
-    }
-
-    contactoAEliminar?.let { c ->
-        AlertDialog(
-            onDismissRequest = { contactoAEliminar = null },
-            title = { Text("¿Eliminar a ${c.nombre ?: "@${c.usuario}"} de tus contactos?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    contactoAEliminar = null
-                    scope.launch {
-                        accion = "del:${c.id}"
-                        try {
-                            ApiClient.service.eliminarContacto(c.id).datoOLanzar()
-                            cargar()
-                        } catch (e: Exception) {
-                            error = "No pudimos eliminar el contacto."
-                        }
-                        accion = null
-                    }
-                }) { Text("Eliminar") }
-            },
-            dismissButton = { TextButton(onClick = { contactoAEliminar = null }) { Text("Cancelar") } },
-        )
-    }
 }
 
+/** Fila de una persona: foto, nombre y debajo su info (o su @). */
 @Composable
-private fun FilaPersona(nombre: String?, usuario: String?, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.padding(vertical = 4.dp)) {
-        Text(nombre ?: usuario?.let { "@$it" } ?: "", style = MaterialTheme.typography.bodyMedium)
-        usuario?.let { Text("@$it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+internal fun FilaPersona(
+    nombre: String?,
+    usuario: String?,
+    avatarUrl: String?,
+    bio: String? = null,
+    etiqueta: String? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    Row(
+        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        FotoPerfil(avatarUrl, nombre ?: usuario, tamano = 46.dp)
+        Column(Modifier.weight(1f)) {
+            Text(nombre ?: usuario?.let { "@$it" }.orEmpty(), fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Text(bio?.takeIf { it.isNotBlank() } ?: usuario?.let { "@$it" }.orEmpty(),
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        }
+        etiqueta?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }

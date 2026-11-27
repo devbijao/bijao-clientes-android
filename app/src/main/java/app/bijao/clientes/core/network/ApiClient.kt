@@ -17,7 +17,9 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
  * llamada: ningún endpoint de `ApiService` necesita saberlo.
  */
 object ApiClient {
-    private val json = Json { ignoreUnknownKeys = true }
+    /** Público para las respuestas que traen un objeto «extendido» (el detalle
+     * de un bono o de una tarjeta): se decodifican dos veces del mismo JSON. */
+    val json = Json { ignoreUnknownKeys = true }
 
     private val authInterceptor = Interceptor { chain ->
         val token = AuthManager.accessToken

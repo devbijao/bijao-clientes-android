@@ -41,16 +41,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import app.bijao.clientes.core.models.CanjeData
-import app.bijao.clientes.core.models.CanjeInput
 import app.bijao.clientes.core.models.NegocioDetalle
 import app.bijao.clientes.core.models.ResenasResponse
 import app.bijao.clientes.core.network.ApiClient
 import app.bijao.clientes.core.network.datoOLanzar
 import app.bijao.clientes.core.ui.BotonFavorito
 import app.bijao.clientes.core.ui.Estrellas
-import app.bijao.clientes.ui.beneficios.CanjeResultSheet
-import app.bijao.clientes.ui.beneficios.TarjetaCard
+import app.bijao.clientes.ui.beneficios.TarjetaSellos
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 
@@ -66,9 +63,6 @@ fun NegocioDetalleScreen(negocioId: String, onAtras: () -> Unit) {
     var resenasResp by remember { mutableStateOf<ResenasResponse?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var mostrandoTodas by remember { mutableStateOf(false) }
-    var canjeandoId by remember { mutableStateOf<String?>(null) }
-    var resultadoCanje by remember { mutableStateOf<CanjeData?>(null) }
-    var errorCanje by remember { mutableStateOf<String?>(null) }
 
     suspend fun cargar() {
         error = null
@@ -85,13 +79,6 @@ fun NegocioDetalleScreen(negocioId: String, onAtras: () -> Unit) {
     }
 
     LaunchedEffect(negocioId) { cargar() }
-
-    resultadoCanje?.let { resultado ->
-        CanjeResultSheet(resultado = resultado) {
-            resultadoCanje = null
-            scope.launch { cargar() }
-        }
-    }
 
     if (mostrandoTodas && resenasResp != null) {
         TodasResenasScreen(negocioId, resenasResp!!, onAtras = { mostrandoTodas = false })
@@ -138,24 +125,8 @@ fun NegocioDetalleScreen(negocioId: String, onAtras: () -> Unit) {
                             Text("Tus tarjetas", style = MaterialTheme.typography.titleMedium)
                             Spacer(Modifier.padding(top = 8.dp))
                             detalle!!.tarjetas.forEach { tarjeta ->
-                                TarjetaCard(
-                                    tarjeta = tarjeta,
-                                    canjeando = canjeandoId == tarjeta.recompensaId,
-                                    logoUrl = detalle!!.logoUrl,
-                                ) {
-                                    scope.launch {
-                                        canjeandoId = tarjeta.recompensaId
-                                        try {
-                                            resultadoCanje = ApiClient.service.canjear(
-                                                CanjeInput(tarjeta.negocio.id, tarjeta.recompensaId),
-                                            ).datoOLanzar().data
-                                        } catch (e: Exception) {
-                                            errorCanje = "No pudimos canjear. Inténtalo de nuevo en un momento."
-                                        } finally {
-                                            canjeandoId = null
-                                        }
-                                    }
-                                }
+                                // Sin «Canjear»: el premio llega solo a Bonos al completarla.
+                                TarjetaSellos(tarjeta = tarjeta, logoUrl = detalle!!.logoUrl)
                                 Spacer(Modifier.padding(top = 10.dp))
                             }
                         }
@@ -190,16 +161,6 @@ fun NegocioDetalleScreen(negocioId: String, onAtras: () -> Unit) {
             }
         }
 
-        errorCanje?.let { mensaje ->
-            androidx.compose.material3.AlertDialog(
-                onDismissRequest = { errorCanje = null },
-                title = { Text("No pudimos canjear") },
-                text = { Text(mensaje) },
-                confirmButton = {
-                    androidx.compose.material3.TextButton(onClick = { errorCanje = null }) { Text("Ok") }
-                },
-            )
-        }
     }
 }
 

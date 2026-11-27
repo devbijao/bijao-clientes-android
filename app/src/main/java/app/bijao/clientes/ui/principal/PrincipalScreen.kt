@@ -34,7 +34,8 @@ import app.bijao.clientes.EnlacesEntrantes
 import app.bijao.clientes.ui.beneficios.BeneficiosScreen
 import app.bijao.clientes.ui.comunidad.ComunidadScreen
 import app.bijao.clientes.ui.comunidad.EventoComunidadScreen
-import app.bijao.clientes.ui.beneficios.ValesScreen
+import app.bijao.clientes.ui.beneficios.BonoDetalleScreen
+import app.bijao.clientes.ui.beneficios.TarjetaDetalleScreen
 import app.bijao.clientes.core.models.Perfil
 import app.bijao.clientes.ui.contactos.ContactosScreen
 import app.bijao.clientes.ui.creditos.CreditoDetalleScreen
@@ -197,10 +198,28 @@ fun PrincipalScreen(
                 NegocioDetalleScreen(negocioId = negocioId, onAtras = { navController.popBackStack() })
             }
             composable("beneficios") {
-                BeneficiosScreen(onVerVales = { navController.navigate("vales") })
+                BeneficiosScreen(
+                    onBonoClick = { id -> navController.navigate("bono/$id") },
+                    onTarjetaClick = { id -> navController.navigate("tarjeta/$id") },
+                )
             }
-            composable("vales") {
-                ValesScreen(onAtras = { navController.popBackStack() })
+            composable(
+                "bono/{bonoId}",
+                arguments = listOf(navArgument("bonoId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val bonoId = backStackEntry.arguments?.getString("bonoId") ?: return@composable
+                BonoDetalleScreen(
+                    bonoId = bonoId,
+                    onAtras = { navController.popBackStack() },
+                    onNegocioClick = { id -> navController.navigate("negocio/$id") },
+                )
+            }
+            composable(
+                "tarjeta/{recompensaId}",
+                arguments = listOf(navArgument("recompensaId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val recompensaId = backStackEntry.arguments?.getString("recompensaId") ?: return@composable
+                TarjetaDetalleScreen(recompensaId = recompensaId, onAtras = { navController.popBackStack() })
             }
             composable("favoritos") {
                 FavoritosScreen(onNegocioClick = { id -> navController.navigate("negocio/$id") })

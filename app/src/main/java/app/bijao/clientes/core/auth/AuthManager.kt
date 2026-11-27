@@ -62,6 +62,20 @@ object AuthManager {
      * que `auth.session?.user.phone` en iOS. */
     val celularSesion: String? get() = auth.currentUserOrNull()?.phone
 
+    /** Nombre que trajo el proveedor (Google), para precargar «Tu nombre» en
+     * el onboarding -- igual que `nombreDelProveedor` en iOS. Un «nombre» con
+     * «@» es el correo que Google pone cuando la cuenta no tiene nombre: no
+     * sirve, y el backend tampoco lo usa (alta del 25-nov). */
+    val nombreDelProveedor: String?
+        get() {
+            val datos = auth.currentUserOrNull()?.userMetadata ?: return null
+            return listOf("full_name", "name").firstNotNullOfOrNull { clave ->
+                (datos[clave] as? kotlinx.serialization.json.JsonPrimitive)
+                    ?.takeIf { it.isString }?.content?.trim()
+                    ?.takeIf { it.isNotEmpty() && !it.contains("@") }
+            }
+        }
+
     // Pedir el código va por el backend (`POST /api/app/auth/codigo`), no por
     // `auth.signInWith(OTP)`: el proyecto de Auth de Clientes exige captcha
     // (Turnstile, para la web) y Supabase respondía `captcha_failed` a la app.

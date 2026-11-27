@@ -208,7 +208,7 @@ private fun formatearParaDictar(token: String): String {
  * Nivel de corrección `H` (el más alto) a propósito: al tapar el centro con
  * el logo, un nivel más bajo puede volverlo ilegible para el escáner de caja.
  */
-private fun generarBitmapQR(context: Context, texto: String, tamano: Int): Bitmap {
+internal fun generarBitmapQR(context: Context, texto: String, tamano: Int): Bitmap {
     val hints = mapOf(
         EncodeHintType.CHARACTER_SET to "UTF-8",
         EncodeHintType.MARGIN to 1,

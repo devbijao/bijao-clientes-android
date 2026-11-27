@@ -1,5 +1,6 @@
 package app.bijao.clientes.ui.onboarding
 
+import app.bijao.clientes.core.auth.AuthManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -22,6 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +64,12 @@ fun OnboardingScreen(celularSesion: String, onRegistrado: (Perfil, Int) -> Unit)
     val scope = rememberCoroutineScope()
     val pideCelular = celularSesion.isBlank()
     val celularValido = !pideCelular || celular.length == 10
+
+    // Con Google, el nombre de la cuenta ya viene en la sesión: se precarga
+    // (la persona lo puede cambiar). Si se deja vacío, el backend también lo usa.
+    LaunchedEffect(Unit) {
+        if (nombre.isBlank()) AuthManager.nombreDelProveedor?.let { nombre = it }
+    }
 
     if (mostrandoSelectorCiudad) {
         SelectorCiudadDialog(

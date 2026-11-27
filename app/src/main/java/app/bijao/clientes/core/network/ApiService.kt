@@ -7,8 +7,6 @@ import app.bijao.clientes.core.models.AvisosPagoResponse
 import app.bijao.clientes.core.models.BeneficiosResponse
 import app.bijao.clientes.core.models.BloqueosResponse
 import app.bijao.clientes.core.models.BusquedaResponse
-import app.bijao.clientes.core.models.CanjeInput
-import app.bijao.clientes.core.models.CanjeResponse
 import app.bijao.clientes.core.models.CategoriasResponse
 import app.bijao.clientes.core.models.EliminarCuentaResponse
 import app.bijao.clientes.core.models.EstadoComunidad
@@ -29,7 +27,10 @@ import app.bijao.clientes.core.models.DetalleCreditoResponse
 import app.bijao.clientes.core.models.ListaCreditos
 import app.bijao.clientes.core.models.EstadoSolicitudResponse
 import app.bijao.clientes.core.models.DirectorioResponse
+import app.bijao.clientes.core.models.BonosResponse
 import app.bijao.clientes.core.models.Envelope
+import app.bijao.clientes.core.models.EstadoBono
+import app.bijao.clientes.core.models.QRBono
 import app.bijao.clientes.core.models.EstadoParteInput
 import app.bijao.clientes.core.models.EstadoParteResponse
 import app.bijao.clientes.core.models.FavoritoResponse
@@ -59,8 +60,8 @@ import app.bijao.clientes.core.models.SolicitudInput
 import app.bijao.clientes.core.models.SolicitudesResponse
 import app.bijao.clientes.core.models.UsuarioGuardadoResponse
 import app.bijao.clientes.core.models.UsuarioInput
-import app.bijao.clientes.core.models.ValesResponse
 import app.bijao.clientes.core.models.WalletResponse
+import kotlinx.serialization.json.JsonObject
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -121,11 +122,28 @@ interface ApiService {
     @GET("api/app/beneficios")
     suspend fun beneficios(): Response<BeneficiosResponse>
 
-    @POST("api/app/canjear")
-    suspend fun canjear(@Body body: CanjeInput): Response<CanjeResponse>
+    /** Tarjeta + `historial`: se decodifica con `TarjetaDetalle.desde`. */
+    @GET("api/app/beneficios/{id}")
+    suspend fun tarjeta(@Path("id") id: String): Response<Envelope<JsonObject>>
 
-    @GET("api/app/vales")
-    suspend fun vales(@Query("estado") estado: String? = null): Response<ValesResponse>
+    // Bonos (`backend/routers/app_bonos.py`). Ya no hay «Canjear» ni vales:
+    // el premio de una tarjeta llega solo como bono.
+
+    /** Listarlos también asigna los bonos que llegaron al celular verificado
+     * o al correo de la persona antes de tener cuenta. */
+    @GET("api/app/bonos")
+    suspend fun bonos(): Response<BonosResponse>
+
+    /** Bono + negocios/excluidos/movimientos: se decodifica con `BonoDetalle.desde`. */
+    @GET("api/app/bonos/{id}")
+    suspend fun bono(@Path("id") id: String): Response<Envelope<JsonObject>>
+
+    /** 409 con `detail` legible si el bono está pausado, vencido o usado. */
+    @POST("api/app/bonos/{id}/qr")
+    suspend fun qrBono(@Path("id") id: String): Response<Envelope<QRBono>>
+
+    @GET("api/app/bonos/{id}/estado")
+    suspend fun estadoBono(@Path("id") id: String): Response<Envelope<EstadoBono>>
 
     @POST("api/app/qr")
     suspend fun generarQR(): Response<Envelope<QRIdentidad>>

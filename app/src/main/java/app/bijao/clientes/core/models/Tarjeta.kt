@@ -1,11 +1,18 @@
 package app.bijao.clientes.core.models
 
+import app.bijao.clientes.core.network.ApiClient
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
 
 /** Espejo de `GET /api/app/beneficios` -- una fila por recompensa activa de
  * cada negocio vinculado. El "saldo" de sellos vive en `saldos_fidelidad`,
- * no se calcula en el cliente. */
+ * no se calcula en el cliente.
+ *
+ * Desde F5 de `MDs/plan_bonos.md` no hay «Canjear»: al completar la tarjeta
+ * el premio se emite solo como bono (`origen: FIDELIDAD`) y la tarjeta vuelve
+ * a cero. `puede_canjear` sigue llegando, pero la app ya no lo lee. */
 @Serializable
 data class NegocioResumen(
     val id: String,
@@ -28,28 +35,49 @@ data class Tarjeta(
     val saldo: Int,
     val meta: Int,
     val faltan: Int,
-    @SerialName("puede_canjear") val puedeCanjear: Boolean,
-    val agotada: Boolean,
+    val agotada: Boolean = false,
     @SerialName("aplica_cualquier_compra") val aplicaCualquierCompra: Boolean = false,
-)
+    /** Productos (o «productos de X») con que suma una tarjeta condicionada. */
+    @SerialName("suma_con") val sumaCon: List<String>? = null,
+    /** Cara de la tarjeta (hex); null = la de Bijao. */
+    val color: String? = null,
+    /** Uno de los 10 íconos fijos; null = sello genérico. */
+    val icono: String? = null,
+    /** El premio en pocas palabras: «15% en una compra». */
+    val premio: String? = null,
+    /** Días que dura el bono-premio al completar la tarjeta. */
+    @SerialName("premio_dias") val premioDias: Int? = null,
+) {
+    /** Lo que se gana, con el mismo orden de preferencia que la web. */
+    val textoPremio: String get() = premio ?: premioTexto ?: nombre ?: "Premio"
+}
 
 @Serializable
 data class BeneficiosResponse(val data: List<Tarjeta>, val negocios: Int = 0)
 
 @Serializable
-data class CanjeInput(@SerialName("negocio_id") val negocioId: String, @SerialName("recompensa_id") val recompensaId: String)
-
-@Serializable
-data class CanjeData(
-    val codigo: String? = null,
-    val estado: String? = null,
-    @SerialName("fecha_expiracion") val fechaExpiracion: String? = null,
-    val recompensa: String? = null,
-    @SerialName("premio_texto") val premioTexto: String? = null,
-    @SerialName("negocio_id") val negocioId: String? = null,
-    @SerialName("saldo_restante") val saldoRestante: Int? = null,
-    val instrucciones: String? = null,
+data class MovimientoTarjeta(
+    /** ACUMULACION | CANJE | REVERSION | EXPIRACION | AJUSTE */
+    val tipo: String,
+    /** «Compra», «Premio», «Compra anulada», «Sellos vencidos», «Ajuste del negocio» */
+    val motivo: String = "",
+    val sellos: Int = 0,
+    val fecha: String,
+    val monto: Double? = null,
+    /** Cómo quedó la tarjeta después del movimiento. */
+    val saldo: Int = 0,
 )
 
 @Serializable
-data class CanjeResponse(val mensaje: String, val data: CanjeData)
+private data class SoloHistorial(val historial: List<MovimientoTarjeta> = emptyList())
+
+/** `GET /api/app/beneficios/{id}`: la tarjeta y sus últimos movimientos, en un
+ * mismo objeto -- se decodifica dos veces del mismo JSON. */
+data class TarjetaDetalle(val tarjeta: Tarjeta, val historial: List<MovimientoTarjeta>) {
+    companion object {
+        fun desde(obj: JsonObject) = TarjetaDetalle(
+            tarjeta = ApiClient.json.decodeFromJsonElement<Tarjeta>(obj),
+            historial = ApiClient.json.decodeFromJsonElement<SoloHistorial>(obj).historial,
+        )
+    }
+}

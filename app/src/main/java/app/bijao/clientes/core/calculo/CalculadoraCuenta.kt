@@ -20,7 +20,9 @@ object CalculadoraCuenta {
     fun totalConPropina(total: Int, propinaPct: Int): Int {
         if (total <= 0) return 0
         val pct = min(100, max(0, propinaPct))
-        return (total.toLong() * (100 + pct) * 2 + 100).toInt() / 200
+        // Se divide en Long y después se pasa a Int: con `.toInt()` antes del
+        // `/ 200`, un total de $12.500.005 desbordaba y salía negativo.
+        return ((total.toLong() * (100 + pct) * 2 + 100) / 200).toInt()
     }
 
     /** Reparte [monto] entre [personas] en pesos enteros. El residuo se

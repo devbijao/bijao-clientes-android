@@ -1,5 +1,7 @@
 package app.bijao.clientes.ui.wallet
 
+import app.bijao.clientes.core.ui.MilesTransformation
+import app.bijao.clientes.core.ui.soloDigitos
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -110,8 +112,9 @@ fun AgregarMovimientoSheet(categorias: CategoriasWallet, onCerrar: () -> Unit, o
             Spacer(Modifier.padding(top = 16.dp))
 
             OutlinedTextField(
-                value = CalculadoraCuenta.formatoMiles(monto),
-                onValueChange = { montoTexto = it },
+                value = montoTexto,
+                onValueChange = { montoTexto = soloDigitos(it) },
+                visualTransformation = MilesTransformation,
                 label = { Text("Monto") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 prefix = { Text("$") },

@@ -1,5 +1,7 @@
 package app.bijao.clientes.ui.cuentas
 
+import app.bijao.clientes.core.ui.MilesTransformation
+import app.bijao.clientes.core.ui.soloDigitos
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -101,7 +103,11 @@ fun DividirScreen(onAtras: () -> Unit, onVerMisCuentas: () -> Unit) {
     var otraPctTexto by remember { mutableStateOf("") }
     var modo by remember { mutableStateOf(ModoReparto.IGUAL) }
     var montos by remember { mutableStateOf(listOf("", "")) }
-    var nombres by remember { mutableStateOf(listOf("", "")) }
+    // La primera parte es de quien divide: arranca como «Yo».
+    var nombres by remember { mutableStateOf(listOf("Yo", "")) }
+    // Primer nombre propio: reemplaza «Yo» en lo que ven los demás (el link
+    // y el texto compartido muestran los nombres tal cual).
+    var primerNombrePropio by remember { mutableStateOf<String?>(null) }
     var contactoDe by remember { mutableStateOf(listOf<String?>(null, null)) }
     var contactos by remember { mutableStateOf(listOf<ContactoItem>()) }
     var menuAbiertoPara by remember { mutableStateOf<Int?>(null) }
@@ -139,7 +145,13 @@ fun DividirScreen(onAtras: () -> Unit, onVerMisCuentas: () -> Unit) {
         contactoDe = (0 until nuevo).map { contactoDe.getOrElse(it) { null } }
     }
 
-    fun nombreDe(i: Int): String = nombres.getOrNull(i)?.trim()?.takeIf { it.isNotEmpty() } ?: "Persona ${i + 1}"
+    /** El nombre de la parte tal como lo verán los demás: «Yo» pasa a ser el primer nombre propio. */
+    fun nombreParaOtros(i: Int): String {
+        val nombre = nombres.getOrNull(i)?.trim().orEmpty()
+        return if (nombre.equals("Yo", ignoreCase = true)) primerNombrePropio.orEmpty().take(30) else nombre
+    }
+
+    fun nombreDe(i: Int): String = nombreParaOtros(i).takeIf { it.isNotEmpty() } ?: "Persona ${i + 1}"
 
     fun elegirContacto(i: Int, contacto: ContactoItem?) {
         contactoDe = contactoDe.toMutableList().also { it[i] = contacto?.id }
@@ -155,6 +167,20 @@ fun DividirScreen(onAtras: () -> Unit, onVerMisCuentas: () -> Unit) {
         } catch (e: Exception) {
             emptyList()
         }
+        primerNombrePropio = try {
+            ApiClient.service.perfil().datoOLanzar().data.nombre?.trim()?.split(" ")?.firstOrNull()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    menuAbiertoPara?.let { i ->
+        SelectorContactoSheet(
+            contactos = contactos.filter { it.id == contactoDe.getOrNull(i) || it.id !in contactoDe },
+            elegido = contactoDe.getOrNull(i),
+            onElegir = { c -> elegirContacto(i, c); menuAbiertoPara = null },
+            onCerrar = { menuAbiertoPara = null },
+        )
     }
 
     LaunchedEffect(buscandoNegocio, busqueda) {
@@ -222,8 +248,9 @@ fun DividirScreen(onAtras: () -> Unit, onVerMisCuentas: () -> Unit) {
                             Text("$", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(Modifier.padding(start = 6.dp))
                             OutlinedTextField(
-                                value = CalculadoraCuenta.formatoMiles(total),
-                                onValueChange = { totalTexto = it },
+                                value = totalTexto,
+                                onValueChange = { totalTexto = soloDigitos(it) },
+                                visualTransformation = MilesTransformation,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                                 placeholder = { Text("0") },
@@ -330,25 +357,15 @@ fun DividirScreen(onAtras: () -> Unit, onVerMisCuentas: () -> Unit) {
                                 placeholder = { Text("Persona ${i + 1}") },
                                 modifier = Modifier.weight(1f),
                             )
-                            if (contactos.isNotEmpty()) {
+                            // La parte de «Yo» no se asigna a un contacto.
+                            if (contactos.isNotEmpty() && i > 0) {
                                 Spacer(Modifier.padding(start = 8.dp))
-                                Box {
-                                    val elegido = contactos.firstOrNull { it.id == contactoDe.getOrNull(i) }
-                                    TextButton(onClick = { menuAbiertoPara = i }) {
-                                        Text(
-                                            elegido?.let { it.nombre ?: "@${it.usuario}" } ?: "Contacto…",
-                                            style = MaterialTheme.typography.labelMedium,
-                                        )
-                                    }
-                                    DropdownMenu(expanded = menuAbiertoPara == i, onDismissRequest = { menuAbiertoPara = null }) {
-                                        DropdownMenuItem(text = { Text("Sin contacto") }, onClick = { elegirContacto(i, null); menuAbiertoPara = null })
-                                        contactos.filter { it.id == contactoDe.getOrNull(i) || it.id !in contactoDe }.forEach { c ->
-                                            DropdownMenuItem(
-                                                text = { Text(c.nombre ?: "@${c.usuario}") },
-                                                onClick = { elegirContacto(i, c); menuAbiertoPara = null },
-                                            )
-                                        }
-                                    }
+                                val elegido = contactos.firstOrNull { it.id == contactoDe.getOrNull(i) }
+                                TextButton(onClick = { menuAbiertoPara = i }) {
+                                    Text(
+                                        elegido?.let { it.nombre ?: "@${it.usuario}" } ?: "Contacto…",
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
                                 }
                             }
                             Spacer(Modifier.padding(start = 10.dp))
@@ -357,7 +374,8 @@ fun DividirScreen(onAtras: () -> Unit, onVerMisCuentas: () -> Unit) {
                             } else {
                                 OutlinedTextField(
                                     value = montos.getOrElse(i) { "" },
-                                    onValueChange = { nuevo -> montos = montos.toMutableList().also { it[i] = nuevo } },
+                                    onValueChange = { nuevo -> montos = montos.toMutableList().also { it[i] = soloDigitos(nuevo) } },
+                                    visualTransformation = MilesTransformation,
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     prefix = { Text("$") },
                                     modifier = Modifier.width(120.dp),
@@ -386,7 +404,7 @@ fun DividirScreen(onAtras: () -> Unit, onVerMisCuentas: () -> Unit) {
                                         descripcion = null,
                                         negocioId = negocio?.id,
                                         partes = partes.indices.map { i ->
-                                            ParteCuentaInput(nombres.getOrElse(i) { "" }.trim(), partes[i], contactoDe.getOrNull(i))
+                                            ParteCuentaInput(nombreParaOtros(i), partes[i], contactoDe.getOrNull(i))
                                         },
                                     )
                                     cuentaCreada = ApiClient.service.crearCuenta(datos).datoOLanzar()

@@ -71,7 +71,6 @@ fun PerfilScreen(
     perfilInicial: Perfil,
     onPerfilActualizado: (Perfil) -> Unit,
     onVerHistorial: () -> Unit,
-    onVerWallet: () -> Unit,
     onVerContactos: () -> Unit,
     onVerCreditos: () -> Unit,
     onVerComunidad: () -> Unit,
@@ -268,17 +267,7 @@ fun PerfilScreen(
             }
         }
 
-        item {
-            Card(onClick = onVerWallet, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Mi Wallet", modifier = Modifier.weight(1f))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, modifier = Modifier.size(16.dp))
-                }
-            }
-        }
+        // «Mi Wallet» ya está en Inicio: no se repite aquí.
 
         item {
             Card(onClick = onVerCreditos, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {

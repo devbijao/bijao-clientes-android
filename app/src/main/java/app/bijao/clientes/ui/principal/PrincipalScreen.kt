@@ -229,7 +229,6 @@ fun PrincipalScreen(
                     perfilInicial = perfil,
                     onPerfilActualizado = onPerfilActualizado,
                     onVerHistorial = { navController.navigate("historial") },
-                    onVerWallet = { navController.navigate("wallet") },
                     onVerContactos = { navController.navigate("contactos") },
                     onVerCreditos = { navController.navigate("creditos") },
                     onVerComunidad = { navController.navigate("comunidad") },

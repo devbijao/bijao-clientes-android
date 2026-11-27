@@ -1,35 +1,36 @@
 package app.bijao.clientes.ui.perfil
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,33 +44,35 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.bijao.clientes.core.auth.AuthManager
 import app.bijao.clientes.core.models.Perfil
-import app.bijao.clientes.core.models.PerfilUpdateInput
 import app.bijao.clientes.core.network.ApiClient
 import app.bijao.clientes.core.network.datoOLanzar
-import app.bijao.clientes.ui.onboarding.SelectorCiudadDialog
-import coil.compose.AsyncImage
-import kotlinx.coroutines.Dispatchers
+import app.bijao.clientes.core.ui.FotoPerfil
+import app.bijao.clientes.core.ui.PortadaPerfil
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.ByteArrayOutputStream
 
 private const val PREFS = "bijao_clientes"
 private const val CLAVE_NOTIFICACIONES = "notificaciones_activadas"
+private val ALTO_PORTADA = 210.dp
+private val TAMANO_FOTO = 116.dp
 
-/** Al estilo "Cuenta de Apple": avatar+nombre llevan el protagonismo arriba,
- * sin verse como una fila más. Equivalente de `PerfilView.swift`. */
+/**
+ * Perfil al estilo WhatsApp (F2 de `MDs/plan_apps_nativas_previo_revision.md`):
+ * portada arriba, la foto montada sobre ella, nombre, @ e «Info», y debajo las
+ * funciones agrupadas. Se abre en modo vista: los cambios se hacen en «Editar»
+ * (arriba a la derecha). Equivalente de `PerfilView.swift`.
+ */
 @Composable
 fun PerfilScreen(
-    perfilInicial: Perfil,
-    onPerfilActualizado: (Perfil) -> Unit,
+    perfil: Perfil,
+    onEditar: () -> Unit,
     onVerHistorial: () -> Unit,
     onVerContactos: () -> Unit,
     onVerCreditos: () -> Unit,
@@ -79,244 +82,60 @@ fun PerfilScreen(
     val scope = rememberCoroutineScope()
     val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
 
-    var miUsuarioPreview by remember { mutableStateOf<String?>(null) }
+    var miUsuario by remember { mutableStateOf(perfil.usuario) }
     LaunchedEffect(Unit) {
         try {
-            miUsuarioPreview = ApiClient.service.miUsuario().datoOLanzar().usuario
+            miUsuario = ApiClient.service.miUsuario().datoOLanzar().usuario
         } catch (e: Exception) {
-            // Se intenta de nuevo al abrir Contactos; la fila simplemente no muestra el @.
+            // Sin @ la fila de Contactos simplemente no lo muestra.
         }
     }
-
-    var perfil by remember { mutableStateOf(perfilInicial) }
-    var nombre by remember { mutableStateOf(perfilInicial.nombre ?: "") }
-    var ciudad by remember { mutableStateOf(perfilInicial.ciudad ?: "") }
-    var guardando by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var mostrandoSelectorCiudad by remember { mutableStateOf(false) }
-    var subiendoAvatar by remember { mutableStateOf(false) }
-    var errorAvatar by remember { mutableStateOf<String?>(null) }
     var notificacionesActivadas by remember { mutableStateOf(prefs.getBoolean(CLAVE_NOTIFICACIONES, true)) }
     var confirmandoBorrado by remember { mutableStateOf(false) }
     var borrando by remember { mutableStateOf(false) }
     var errorBorrado by remember { mutableStateOf<String?>(null) }
 
-    suspend fun guardar() {
-        guardando = true
-        error = null
-        try {
-            val respuesta = ApiClient.service.actualizarPerfil(
-                PerfilUpdateInput(nombre = nombre.trim(), ciudad = ciudad.trim()),
-            ).datoOLanzar()
-            perfil = respuesta.data
-            onPerfilActualizado(respuesta.data)
-        } catch (e: Exception) {
-            error = "Inténtalo de nuevo en un momento."
-        } finally {
-            guardando = false
-        }
-    }
-
-    suspend fun subirAvatar(bitmapOriginal: Bitmap) {
-        subiendoAvatar = true
-        errorAvatar = null
-        try {
-            val jpeg = withContext(Dispatchers.Default) { recortarYComprimir(bitmapOriginal) }
-            val cuerpo = jpeg.toRequestBody("image/jpeg".toMediaType())
-            val parte = MultipartBody.Part.createFormData("file", "avatar.jpg", cuerpo)
-            val respuesta = ApiClient.service.subirAvatar(parte).datoOLanzar()
-            perfil = perfil.copy(avatarUrl = respuesta.avatarUrl)
-            onPerfilActualizado(perfil)
-        } catch (e: Exception) {
-            errorAvatar = "Inténtalo de nuevo en un momento."
-        } finally {
-            subiendoAvatar = false
-        }
-    }
-
-    val selectorFoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            val bitmap = withContext(Dispatchers.IO) {
-                context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
-            }
-            bitmap?.let { subirAvatar(it) }
-        }
-    }
-
-    if (mostrandoSelectorCiudad) {
-        SelectorCiudadDialog(
-            onSeleccionar = {
-                ciudad = it
-                mostrandoSelectorCiudad = false
-                scope.launch { guardar() }
-            },
-            onDismiss = { mostrandoSelectorCiudad = false },
-        )
-    }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        item {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Box(contentAlignment = Alignment.BottomEnd) {
-                    Box(
-                        modifier = Modifier
-                            .size(108.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (subiendoAvatar) {
-                            CircularProgressIndicator()
-                        } else if (perfil.avatarUrl != null) {
-                            AsyncImage(
-                                model = perfil.avatarUrl,
-                                contentDescription = "Foto de perfil",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        } else {
-                            Icon(
-                                Icons.Filled.CameraAlt,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                            .padding(6.dp),
-                    ) {
-                        Icon(Icons.Filled.CameraAlt, contentDescription = "Cambiar foto de perfil", tint = MaterialTheme.colorScheme.onPrimary)
-                    }
-                }
-                Row {
-                    TextButton(onClick = {
-                        selectorFoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }) { Text("Cambiar foto") }
-                    if (perfil.avatarUrl != null) {
-                        TextButton(onClick = {
-                            scope.launch {
-                                try {
-                                    ApiClient.service.quitarAvatar().datoOLanzar()
-                                    perfil = perfil.copy(avatarUrl = null)
-                                    onPerfilActualizado(perfil)
-                                } catch (e: Exception) {
-                                    errorAvatar = "Inténtalo de nuevo en un momento."
-                                }
-                            }
-                        }) { Text("Quitar foto", color = MaterialTheme.colorScheme.error) }
-                    }
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            // Cabecera: portada, foto, nombre, @ e info.
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(contentAlignment = Alignment.BottomCenter) {
+                    PortadaPerfil(perfil.portadaUrl, alto = ALTO_PORTADA, modifier = Modifier.padding(bottom = TAMANO_FOTO / 2))
+                    FotoPerfil(perfil.avatarUrl, perfil.nombre, tamano = TAMANO_FOTO, aro = true)
                 }
                 Text(
                     perfil.nombre?.takeIf { it.isNotBlank() } ?: "Sin nombre",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center, modifier = Modifier.padding(top = 10.dp, start = 24.dp, end = 24.dp),
                 )
-                perfil.celular?.let {
-                    Text("+57 $it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                perfil.email?.let {
-                    Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                errorAvatar?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                }
-            }
-        }
-
-        item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Editar perfil", style = MaterialTheme.typography.titleSmall)
-                    OutlinedTextField(
-                        value = nombre,
-                        onValueChange = { nombre = it },
-                        label = { Text("Nombre") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedButton(onClick = { mostrandoSelectorCiudad = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(ciudad.ifBlank { "Escoger ciudad" })
-                    }
-                    error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
-                    Button(onClick = { scope.launch { guardar() } }, enabled = !guardando, modifier = Modifier.fillMaxWidth()) {
-                        if (guardando) CircularProgressIndicator(modifier = Modifier.size(18.dp)) else Text("Guardar cambios")
-                    }
+                miUsuario?.let { Text("@$it", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                val bio = perfil.bio?.takeIf { it.isNotBlank() }
+                if (bio != null) {
+                    Text(bio, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp, vertical = 4.dp))
+                } else {
+                    TextButton(onClick = onEditar) { Text("Añadir una info") }
                 }
             }
-        }
 
-        item {
-            Card(onClick = onVerHistorial, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Historial de compras", modifier = Modifier.weight(1f))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, modifier = Modifier.size(16.dp))
-                }
+            Grupo {
+                Fila("Historial de compras", Icons.Filled.ShoppingBag, Color(0xFFFF9500), onClick = onVerHistorial)
+                Separador()
+                Fila("Mis créditos", Icons.Filled.CreditCard, Color(0xFF34C759), onClick = onVerCreditos)
+                Separador()
+                Fila("Comunidad", Icons.Filled.Groups, Color(0xFFAF52DE), onClick = onVerComunidad)
+                Separador()
+                Fila("Contactos", Icons.Filled.People, Color(0xFF007AFF), detalle = miUsuario?.let { "@$it" }, onClick = onVerContactos)
             }
-        }
 
-        // «Mi Wallet» ya está en Inicio: no se repite aquí.
-
-        item {
-            Card(onClick = onVerCreditos, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Mis créditos", modifier = Modifier.weight(1f))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, modifier = Modifier.size(16.dp))
-                }
-            }
-        }
-
-        item {
-            Card(onClick = onVerComunidad, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Comunidad", modifier = Modifier.weight(1f))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, modifier = Modifier.size(16.dp))
-                }
-            }
-        }
-
-        item {
-            Card(onClick = onVerContactos, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Contactos", modifier = Modifier.weight(1f))
-                    miUsuarioPreview?.let {
-                        Text("@$it", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        androidx.compose.foundation.layout.Spacer(Modifier.padding(start = 8.dp))
-                    }
-                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null, modifier = Modifier.size(16.dp))
-                }
-            }
-        }
-
-        item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "Avisarme de promociones y novedades",
-                            modifier = Modifier.weight(1f).padding(end = 16.dp),
-                        )
+            Column {
+                Grupo {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        IconoFila(Icons.Filled.NotificationsActive, Color(0xFFFF3B30))
+                        Text("Promociones y novedades", modifier = Modifier.weight(1f).padding(start = 14.dp))
                         Switch(
                             checked = notificacionesActivadas,
                             onCheckedChange = {
@@ -325,41 +144,35 @@ fun PerfilScreen(
                             },
                         )
                     }
-                    Text(
-                        // El envío real todavía depende de la Fase A9 (FCM) -- esto
-                        // solo guarda la preferencia local por ahora.
-                        "El envío real de notificaciones llega con una fase siguiente.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                }
+                Text(
+                    "El envío real de notificaciones llega con una fase siguiente.",
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 32.dp, vertical = 6.dp),
+                )
+            }
+
+            Grupo {
+                Fila("Cerrar sesión", Icons.AutoMirrored.Filled.Logout, Color.Gray, chevron = false) {
+                    scope.launch { AuthManager.salir() }
+                }
+                Separador()
+                // Derecho de supresión: Google Play y la App Store exigen poder borrar
+                // la cuenta desde la misma app.
+                Fila("Eliminar mi cuenta", Icons.Filled.DeleteForever, Color(0xFFFF3B30), chevron = false, rojo = true) {
+                    if (!borrando) confirmandoBorrado = true
                 }
             }
-        }
-
-        item {
-            OutlinedButton(
-                onClick = { scope.launch { AuthManager.salir() } },
-                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Cerrar sesión")
-            }
-        }
-
-        // Derecho de supresión: Google Play y la App Store exigen poder borrar la
-        // cuenta desde la misma app. Discreto, al final, igual que en la web.
-        item {
-            TextButton(
-                onClick = { confirmandoBorrado = true },
-                enabled = !borrando,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Eliminar mi cuenta", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
             errorBorrado?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 24.dp))
             }
         }
+
+        FilledTonalButton(
+            onClick = onEditar,
+            modifier = Modifier.align(Alignment.TopEnd).padding(top = 12.dp, end = 12.dp),
+        ) { Text("Editar", fontWeight = FontWeight.SemiBold) }
     }
 
     if (confirmandoBorrado) {
@@ -383,8 +196,6 @@ fun PerfilScreen(
                             try {
                                 ApiClient.service.eliminarCuenta().datoOLanzar()
                                 confirmandoBorrado = false
-                                // Sin cuenta no hay sesión que conservar: salir lleva
-                                // de vuelta a la pantalla de entrada.
                                 AuthManager.salir()
                             } catch (e: Exception) {
                                 errorBorrado = "No pudimos eliminar la cuenta. Inténtalo de nuevo en un momento."
@@ -395,11 +206,8 @@ fun PerfilScreen(
                         }
                     },
                 ) {
-                    if (borrando) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp))
-                    } else {
-                        Text("Sí, eliminar", color = MaterialTheme.colorScheme.error)
-                    }
+                    if (borrando) CircularProgressIndicator(modifier = Modifier.size(18.dp))
+                    else Text("Sí, eliminar", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
@@ -409,11 +217,49 @@ fun PerfilScreen(
     }
 }
 
-private fun recortarYComprimir(bitmap: Bitmap, lado: Int = 512): ByteArray {
-    val tam = minOf(bitmap.width, bitmap.height)
-    val x = (bitmap.width - tam) / 2
-    val y = (bitmap.height - tam) / 2
-    val cuadrado = Bitmap.createBitmap(bitmap, x, y, tam, tam)
-    val escalado = Bitmap.createScaledBitmap(cuadrado, lado, lado, true)
-    return ByteArrayOutputStream().apply { escalado.compress(Bitmap.CompressFormat.JPEG, 85, this) }.toByteArray()
+// ── Piezas de la lista (como los grupos de WhatsApp) ──────────────────────────
+
+@Composable
+private fun Grupo(contenido: @Composable ColumnScope.() -> Unit) {
+    Column(
+        Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(MaterialTheme.colorScheme.surface),
+        content = contenido,
+    )
+}
+
+@Composable
+private fun Separador() {
+    HorizontalDivider(Modifier.padding(start = 62.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+}
+
+@Composable
+private fun IconoFila(icono: ImageVector, color: Color) {
+    Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(color), contentAlignment = Alignment.Center) {
+        Icon(icono, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+    }
+}
+
+@Composable
+private fun Fila(
+    titulo: String,
+    icono: ImageVector,
+    color: Color,
+    detalle: String? = null,
+    chevron: Boolean = true,
+    rojo: Boolean = false,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconoFila(icono, color)
+        Text(titulo, color = if (rojo) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f).padding(start = 14.dp))
+        detalle?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) }
+        if (chevron) {
+            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp).size(14.dp))
+        }
+    }
 }

@@ -16,6 +16,11 @@ data class Perfil(
     val celular: String? = null,
     @SerialName("celular_verificado") val celularVerificado: Boolean = false,
     @SerialName("avatar_url") val avatarUrl: String? = null,
+    /** Portada e «Info»: el perfil estilo WhatsApp (F2). */
+    @SerialName("portada_url") val portadaUrl: String? = null,
+    val bio: String? = null,
+    /** El @ de Contactos (null = aún no tiene). */
+    val usuario: String? = null,
     val intereses: List<String> = emptyList(),
     val ciudad: String? = null,
     @SerialName("consentimiento_datos") val consentimientoDatos: Boolean = false,
@@ -46,7 +51,12 @@ data class PerfilUpdateInput(
     val nombre: String? = null,
     val intereses: List<String>? = null,
     val ciudad: String? = null,
+    /** «Info» (máx. 140). Vacía la borra; null no la toca. */
+    val bio: String? = null,
 )
+
+@Serializable
+data class PortadaResponse(@SerialName("portada_url") val portadaUrl: String? = null)
 
 @Serializable
 data class AvatarResponse(@SerialName("avatar_url") val avatarUrl: String? = null)

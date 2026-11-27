@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 /**
  * Espejo de `backend/routers/app_contactos.py` -- Contactos (Fase S1): @usuario,
  * solicitudes con aceptación y bloqueos. Ver MDs/handoff_apps_nativas_contactos.md.
- * De otra persona nunca se ve más que nombre, @ y foto.
+ * De otra persona se ve nombre, @, foto, portada e info; nunca celular ni correo.
  */
 @Serializable
 data class MiUsuarioResponse(val usuario: String?, val restringido: Boolean)
@@ -29,6 +29,8 @@ data class PersonaBusqueda(
     val nombre: String?,
     val usuario: String?,
     @SerialName("avatar_url") val avatarUrl: String?,
+    @SerialName("portada_url") val portadaUrl: String? = null,
+    val bio: String? = null,
     val relacion: String,
 )
 
@@ -42,6 +44,8 @@ data class ContactoItem(
     val nombre: String?,
     val usuario: String?,
     @SerialName("avatar_url") val avatarUrl: String?,
+    @SerialName("portada_url") val portadaUrl: String? = null,
+    val bio: String? = null,
     val desde: String,
 )
 
@@ -58,6 +62,8 @@ data class SolicitudItem(
     val nombre: String?,
     val usuario: String?,
     @SerialName("avatar_url") val avatarUrl: String?,
+    @SerialName("portada_url") val portadaUrl: String? = null,
+    val bio: String? = null,
     @SerialName("creada_en") val creadaEn: String,
 )
 
@@ -71,3 +77,17 @@ data class SolicitudInput(val usuario: String)
 /** "ENVIADA" | "ACEPTADA" */
 @Serializable
 data class EstadoSolicitudResponse(val estado: String)
+
+/** `GET /contactos/perfil/{@}`: el perfil grande de otra persona. `relacion`:
+ * NINGUNA | ENVIADA | RECIBIDA | CONTACTO; `conexionId` sirve para aceptar,
+ * cancelar o eliminar. */
+@Serializable
+data class PerfilPersona(
+    val nombre: String? = null,
+    val usuario: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("portada_url") val portadaUrl: String? = null,
+    val bio: String? = null,
+    val relacion: String = "NINGUNA",
+    @SerialName("conexion_id") val conexionId: String? = null,
+)

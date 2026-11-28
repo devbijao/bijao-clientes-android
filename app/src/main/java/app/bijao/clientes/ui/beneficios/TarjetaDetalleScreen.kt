@@ -118,6 +118,7 @@ private fun Contenido(d: TarjetaDetalle, logo: String?, verTodo: Boolean, onVerT
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         TarjetaSellos(t, logoUrl = logo)
+        if (d.googleWallet) BotonGoogleWallet(t.recompensaId)
 
         if (!t.agotada) {
             Seccion {

@@ -51,6 +51,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.bijao.clientes.core.auth.AuthManager
+import app.bijao.clientes.core.seguridad.BloqueoApp
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.runtime.collectAsState
+import androidx.fragment.app.FragmentActivity
 import app.bijao.clientes.core.models.Perfil
 import app.bijao.clientes.core.network.ApiClient
 import app.bijao.clientes.core.network.datoOLanzar
@@ -150,6 +154,28 @@ fun PerfilScreen(
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 32.dp, vertical = 6.dp),
                 )
+            }
+
+            if (BloqueoApp.disponible(context)) {
+                val activado by BloqueoApp.activado.collectAsState()
+                Column {
+                    Grupo {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            IconoFila(Icons.Filled.Fingerprint, Color(0xFF34C759))
+                            Text("Bloquear con huella o rostro", modifier = Modifier.weight(1f).padding(start = 14.dp))
+                            Switch(checked = activado, onCheckedChange = { nuevo ->
+                                val actividad = context as? FragmentActivity
+                                if (nuevo && actividad != null) scope.launch { BloqueoApp.activar(actividad) }
+                                else if (!nuevo) BloqueoApp.desactivar(context)
+                            })
+                        }
+                    }
+                    Text(
+                        "Al abrir Bijao, o al volver después de un minuto, se pide tu huella, tu rostro o el bloqueo del teléfono. Tu sesión sigue abierta.",
+                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 32.dp, vertical = 6.dp),
+                    )
+                }
             }
 
             Grupo {

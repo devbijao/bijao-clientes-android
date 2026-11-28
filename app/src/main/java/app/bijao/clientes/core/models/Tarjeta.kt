@@ -97,3 +97,7 @@ data class TarjetaDetalle(
 /** `GET /api/app/beneficios/{id}/google-wallet`: el enlace de «Agregar a Google Wallet». */
 @Serializable
 data class TarjetaGoogleWallet(val jwt: String, val url: String)
+
+/** `GET /api/app/beneficios/{id}/google-wallet/estado`: si ya está en su Google Wallet. */
+@Serializable
+data class EstadoGoogleWallet(val guardada: Boolean = false)

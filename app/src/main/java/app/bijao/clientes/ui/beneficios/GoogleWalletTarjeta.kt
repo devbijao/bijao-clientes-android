@@ -5,6 +5,19 @@ import android.content.Intent
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.draw.clip
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import app.bijao.clientes.core.ui.ColorExito
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,6 +67,20 @@ fun BotonGoogleWallet(recompensaId: String) {
     val scope = rememberCoroutineScope()
     var cargando by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    // null = todavía no se sabe. Se consulta al abrir y cada vez que la pantalla vuelve
+    // a primer plano (al volver de Google Wallet después de guardarla o quitarla).
+    var guardada by remember { mutableStateOf<Boolean?>(null) }
+    val ciclo = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(recompensaId) {
+        ciclo.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            guardada = try {
+                ApiClient.service.estadoGoogleWallet(recompensaId).datoOLanzar().data.guardada
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                guardada ?: false
+            }
+        }
+    }
 
     fun agregar() {
         if (cargando) return
@@ -76,6 +103,10 @@ fun BotonGoogleWallet(recompensaId: String) {
         }
     }
 
+    if (guardada == true) {
+        YaEnGoogleWallet()
+        return
+    }
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(Modifier.fillMaxWidth().height(48.dp)) {
@@ -113,5 +144,32 @@ fun BotonGoogleWallet(recompensaId: String) {
             style = MaterialTheme.typography.bodySmall,
             color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/** Ya está en Google Wallet: un estado, no otro botón (pedido de Harold, para que no se
+ * confunda con «Agregar»). «Abrir» lleva a la app de Google Wallet si está instalada. */
+@Composable
+private fun YaEnGoogleWallet() {
+    val contexto = LocalContext.current
+    val abrirWallet = remember {
+        contexto.packageManager.getLaunchIntentForPackage("com.google.android.apps.walletnfcrel")
+    }
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = ColorExito, modifier = Modifier.size(22.dp))
+        Column(Modifier.weight(1f).padding(start = 10.dp)) {
+            Text("Ya está en tu Google Wallet", fontWeight = FontWeight.SemiBold)
+            Text("Tus sellos se actualizan solos.", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (abrirWallet != null) {
+            TextButton(onClick = { contexto.startActivity(abrirWallet) }) { Text("Abrir") }
+        }
     }
 }

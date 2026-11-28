@@ -116,4 +116,14 @@ object AuthManager {
     suspend fun salir() {
         auth.signOut()
     }
+
+    /** Renueva el token (por un 401 o por «Reintentar»). Devuelve si funcionó; si
+     * falla por red, la sesión guardada sigue ahí y Supabase lo reintenta solo. */
+    suspend fun renovar(): Boolean = try {
+        auth.refreshCurrentSession()
+        true
+    } catch (e: Exception) {
+        if (e is kotlinx.coroutines.CancellationException) throw e
+        false
+    }
 }

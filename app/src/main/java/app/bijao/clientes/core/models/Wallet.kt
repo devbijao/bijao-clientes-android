@@ -34,6 +34,8 @@ data class MovimientoWallet(
     val categoria: String,
     val negocio: String? = null,
     val nota: String? = null,
+    /** Lo generó un movimiento recurrente (F3). */
+    val recurrente: Boolean = false,
 )
 
 /** Las claves del JSON son literalmente "GASTO"/"INGRESO" (no snake_case). */
@@ -72,3 +74,49 @@ data class MovimientoInput(
 
 @Serializable
 data class MovimientoResponse(val id: String, val categoria: String)
+
+// ── Recurrentes (F3, `/api/app/wallet/recurrentes`) ──────────────────────────
+
+/** Un ingreso o gasto que se repite. El backend genera sus movimientos al abrir
+ * el Wallet (sin cron). */
+@Serializable
+data class RecurrenteWallet(
+    val id: String,
+    val tipo: String,
+    val monto: Int,
+    val categoria: String,
+    val nota: String? = null,
+    /** DIA | SEMANA | MES | CADA_N_DIAS */
+    val frecuencia: String,
+    @SerialName("cada_n") val cadaN: Int = 1,
+    val desde: String,
+    val hasta: String? = null,
+    val activo: Boolean = true,
+    /** La siguiente fecha en que toca (null si está en pausa o ya terminó). */
+    val proxima: String? = null,
+) {
+    val textoFrecuencia: String get() = when (frecuencia) {
+        "DIA" -> "Cada día"
+        "SEMANA" -> "Cada semana"
+        "MES" -> "Cada mes"
+        else -> if (cadaN == 1) "Cada día" else "Cada $cadaN días"
+    }
+}
+
+@Serializable
+data class RecurrentesResponse(val data: List<RecurrenteWallet> = emptyList())
+
+@Serializable
+data class RecurrenteInput(
+    val tipo: String,
+    val monto: Int,
+    val categoria: String,
+    val nota: String? = null,
+    val frecuencia: String,
+    @SerialName("cada_n") val cadaN: Int = 1,
+    val desde: String? = null,
+    val hasta: String? = null,
+)
+
+@Serializable
+data class RecurrenteCambioInput(val activo: Boolean)

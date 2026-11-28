@@ -57,6 +57,8 @@ import app.bijao.clientes.core.models.CategoriaTotal
 import app.bijao.clientes.core.models.MovimientoWallet
 import app.bijao.clientes.core.models.PeriodoResumen
 import app.bijao.clientes.core.models.WalletResponse
+import androidx.compose.material.icons.filled.Repeat
+import app.bijao.clientes.core.models.RecurrenteWallet
 import app.bijao.clientes.core.network.ApiClient
 import app.bijao.clientes.core.network.datoOLanzar
 import app.bijao.clientes.core.ui.ColorExito
@@ -83,12 +85,16 @@ fun WalletScreen(onAtras: () -> Unit) {
     var agregando by remember { mutableStateOf(false) }
     var aviso by remember { mutableStateOf<String?>(null) }
     var borrandoId by remember { mutableStateOf<String?>(null) }
+    var recurrentes by remember { mutableStateOf<List<RecurrenteWallet>>(emptyList()) }
+    var viendoRecurrentes by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     suspend fun cargar() {
         try {
             datos = ApiClient.service.wallet(periodo = forzado, fecha = ref).datoOLanzar()
             error = null
+            // Después del Wallet: al cargarlo, el backend ya generó lo pendiente.
+            recurrentes = try { ApiClient.service.recurrentesWallet().datoOLanzar().data } catch (e: Exception) { recurrentes }
         } catch (e: Exception) {
             error = "No pudimos cargar tu Wallet."
         }
@@ -138,6 +144,8 @@ fun WalletScreen(onAtras: () -> Unit) {
                 aviso = aviso,
                 borrandoId = borrandoId,
                 modifier = Modifier.padding(padding),
+                recurrentesActivos = recurrentes.count { it.activo }.takeIf { recurrentes.isNotEmpty() },
+                onVerRecurrentes = { viendoRecurrentes = true },
                 onCambiarPeriodo = ::cambiarPeriodo,
                 onIrA = ::irA,
                 onBorrar = { m ->
@@ -158,13 +166,31 @@ fun WalletScreen(onAtras: () -> Unit) {
         }
     }
 
+    if (viendoRecurrentes) {
+        RecurrentesSheet(
+            recurrentes = recurrentes,
+            onCerrar = { viendoRecurrentes = false },
+            onCambio = { lista ->
+                recurrentes = lista
+                actualizando = true
+                scope.launch { cargar() }
+            },
+        )
+    }
+
     if (agregando) {
         datos?.let { actual ->
             AgregarMovimientoSheet(
                 categorias = actual.categorias,
                 onCerrar = { agregando = false },
-                onGuardado = { nuevo ->
+                onGuardado = { guardado ->
                     agregando = false
+                    // Recurrente: el backend ya generó lo que tocaba; se recarga todo.
+                    val nuevo = guardado ?: run {
+                        actualizando = true
+                        scope.launch { cargar() }
+                        return@AgregarMovimientoSheet
+                    }
                     var conCategoria = actual
                     if (nuevo.tipo == "GASTO" && nuevo.categoria !in actual.categorias.gasto) {
                         val lista = actual.categorias.gasto.toMutableList()
@@ -198,6 +224,8 @@ private fun Contenido(
     aviso: String?,
     borrandoId: String?,
     modifier: Modifier = Modifier,
+    recurrentesActivos: Int? = null,
+    onVerRecurrentes: () -> Unit = {},
     onCambiarPeriodo: (String) -> Unit,
     onIrA: (String?) -> Unit,
     onBorrar: (MovimientoWallet) -> Unit,
@@ -314,6 +342,18 @@ private fun Contenido(
             }
         }
 
+        recurrentesActivos?.let { activos ->
+            item {
+                androidx.compose.material3.Card(onClick = onVerRecurrentes, modifier = Modifier.fillMaxWidth()) {
+                    Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Repeat, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text("Recurrentes", modifier = Modifier.weight(1f).padding(start = 12.dp))
+                        Text("$activos activos", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+
         item { Text("Movimientos", style = MaterialTheme.typography.titleSmall) }
         if (datos.movimientos.isEmpty()) {
             item {
@@ -369,7 +409,13 @@ private fun FilaMovimiento(m: MovimientoWallet, borrando: Boolean, onBorrar: (Mo
         }
         Spacer(Modifier.padding(start = 10.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(m.negocio ?: m.nota ?: m.categoria, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(m.negocio ?: m.nota ?: m.categoria, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                if (m.recurrente) {
+                    Icon(Icons.Filled.Repeat, contentDescription = "Recurrente", tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 4.dp).size(12.dp))
+                }
+            }
             Text(
                 "${WalletFechas.fecha(m.fecha)} · ${m.categoria}",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,

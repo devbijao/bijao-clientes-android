@@ -42,7 +42,7 @@ android {
         // trae notification channels / adaptive icons nativos.
         minSdk = 26
         targetSdk = 37
-        versionCode = 6
+        versionCode = 7
         versionName = "1.0.1"
         manifestPlaceholders["MAPS_API_KEY"] = secretsProperties.getProperty("MAPS_API_KEY", "")
     }
@@ -93,6 +93,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
+    // Bloqueo con huella / rostro (F4): BiometricPrompt con el PIN del teléfono de respaldo.
+    implementation(libs.androidx.biometric)
     debugImplementation(libs.androidx.ui.tooling)
 
     implementation(libs.kotlinx.serialization.json)

@@ -137,6 +137,10 @@ interface ApiService {
     @GET("api/app/beneficios/{id}/google-wallet")
     suspend fun tarjetaGoogleWallet(@Path("id") id: String): Response<Envelope<app.bijao.clientes.core.models.TarjetaGoogleWallet>>
 
+    /** Solo lee: no crea la tarjeta ni rota el QR. */
+    @GET("api/app/beneficios/{id}/google-wallet/estado")
+    suspend fun estadoGoogleWallet(@Path("id") id: String): Response<Envelope<app.bijao.clientes.core.models.EstadoGoogleWallet>>
+
     // Bonos (`backend/routers/app_bonos.py`). Ya no hay «Canjear» ni vales:
     // el premio de una tarjeta llega solo como bono.
 

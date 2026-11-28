@@ -4,7 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.view.LayoutInflater
-import androidx.compose.foundation.background
+import android.view.View
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,7 +25,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -86,7 +84,13 @@ fun BotonGoogleWallet(recompensaId: String) {
             AndroidView(
                 factory = { ctx -> LayoutInflater.from(ctx).inflate(R.layout.boton_google_wallet, null, false) },
                 update = { vista ->
-                    vista.isEnabled = !cargando
+                    // Mientras carga se oculta solo el arte del botón: el fondo oficial
+                    // queda igual y encima va «Preparando tu tarjeta…», así la forma no
+                    // cambia. No se deshabilita: el estado deshabilitado del paquete de
+                    // Google pinta una capa blanca rectangular. `agregar()` ya ignora
+                    // toques repetidos.
+                    vista.findViewById<View>(R.id.contenido_boton_google_wallet).visibility =
+                        if (cargando) View.INVISIBLE else View.VISIBLE
                     vista.setOnClickListener { agregar() }
                 },
                 modifier = Modifier.fillMaxSize(),
@@ -95,7 +99,7 @@ fun BotonGoogleWallet(recompensaId: String) {
                 // Mientras el servidor la prepara (unos segundos): sin esto parecía que el
                 // botón no hacía nada (lo vio Harold en iOS).
                 Row(
-                    Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)).background(Color(0xFF1F1F1F)),
+                    Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
                 ) {
                     CircularProgressIndicator(Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)

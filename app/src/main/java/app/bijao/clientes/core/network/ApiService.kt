@@ -62,6 +62,10 @@ import app.bijao.clientes.core.models.SolicitudInput
 import app.bijao.clientes.core.models.SolicitudesResponse
 import app.bijao.clientes.core.models.UsuarioGuardadoResponse
 import app.bijao.clientes.core.models.UsuarioInput
+import app.bijao.clientes.core.models.RecurrenteCambioInput
+import app.bijao.clientes.core.models.RecurrenteInput
+import app.bijao.clientes.core.models.RecurrenteWallet
+import app.bijao.clientes.core.models.RecurrentesResponse
 import app.bijao.clientes.core.models.WalletResponse
 import kotlinx.serialization.json.JsonObject
 import okhttp3.MultipartBody
@@ -71,6 +75,7 @@ import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.PATCH
 import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
@@ -257,6 +262,21 @@ interface ApiService {
 
     @DELETE("api/app/wallet/movimientos/{id}")
     suspend fun eliminarMovimientoWallet(@Path("id") id: String): Response<OkResponse>
+
+    @GET("api/app/wallet/recurrentes")
+    suspend fun recurrentesWallet(): Response<RecurrentesResponse>
+
+    /** Crea la regla; el backend genera de una vez lo que ya tocaba. */
+    @POST("api/app/wallet/recurrentes")
+    suspend fun crearRecurrente(@Body body: RecurrenteInput): Response<Envelope<RecurrenteWallet>>
+
+    /** Pausar o reanudar (al reanudar no se rellena lo que tocaba en la pausa). */
+    @PATCH("api/app/wallet/recurrentes/{id}")
+    suspend fun cambiarRecurrente(@Path("id") id: String, @Body body: RecurrenteCambioInput): Response<Envelope<RecurrenteWallet>>
+
+    /** Deja de repetir; con `borrarMovimientos` borra también los ya generados. */
+    @DELETE("api/app/wallet/recurrentes/{id}")
+    suspend fun eliminarRecurrente(@Path("id") id: String, @Query("borrar_movimientos") borrarMovimientos: Boolean): Response<OkResponse>
 
     // ── Contactos (S1) ───────────────────────────────────────────────────
 

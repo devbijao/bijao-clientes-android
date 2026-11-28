@@ -324,6 +324,10 @@ interface ApiService {
     @POST("api/app/contactos/bloqueos")
     suspend fun bloquearPersona(@Body body: SolicitudInput): Response<OkResponse>
 
+    /** Reportar una persona o una reseña (Apple guideline 1.2). */
+    @POST("api/app/reportes")
+    suspend fun reportar(@Body body: app.bijao.clientes.core.models.ReporteInput): Response<app.bijao.clientes.core.models.ReporteRespuesta>
+
     @DELETE("api/app/contactos/bloqueos/{id}")
     suspend fun desbloquearPersona(@Path("id") id: String): Response<OkResponse>
 

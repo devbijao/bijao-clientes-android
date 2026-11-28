@@ -42,7 +42,7 @@ android {
         // trae notification channels / adaptive icons nativos.
         minSdk = 26
         targetSdk = 37
-        versionCode = 12
+        versionCode = 13
         versionName = "1.0.1"
         manifestPlaceholders["MAPS_API_KEY"] = secretsProperties.getProperty("MAPS_API_KEY", "")
     }

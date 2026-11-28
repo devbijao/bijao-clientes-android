@@ -36,6 +36,8 @@ data class Resena(
     @SerialName("respuesta_at") val respuestaAt: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("es_mia") val esMia: Boolean = false,
+    /** Id público para reportarla; null con backends anteriores al reporte. */
+    val ref: String? = null,
 )
 
 @Serializable

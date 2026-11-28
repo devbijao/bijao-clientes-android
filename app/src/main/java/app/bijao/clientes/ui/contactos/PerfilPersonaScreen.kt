@@ -51,6 +51,8 @@ import app.bijao.clientes.core.network.datoOLanzar
 import app.bijao.clientes.core.ui.ColorExito
 import app.bijao.clientes.core.ui.FotoPerfil
 import app.bijao.clientes.core.ui.PortadaPerfil
+import app.bijao.clientes.ui.reportar.ObjetoReporte
+import app.bijao.clientes.ui.reportar.ReportarSheet
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -69,6 +71,7 @@ fun PerfilPersonaScreen(usuario: String, onAtras: () -> Unit) {
     var trabajando by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
     var confirmar by remember { mutableStateOf<String?>(null) }   // "bloquear" | "eliminar" | "cancelar"
+    var reportando by remember { mutableStateOf(false) }
 
     suspend fun cargar() {
         try {
@@ -171,10 +174,15 @@ fun PerfilPersonaScreen(usuario: String, onAtras: () -> Unit) {
                     if (p.relacion == "CONTACTO") {
                         DropdownMenuItem(text = { Text("Eliminar de mis contactos") }, onClick = { menu = false; confirmar = "eliminar" })
                     }
+                    DropdownMenuItem(text = { Text("Reportar") }, onClick = { menu = false; reportando = true })
                     DropdownMenuItem(text = { Text("Bloquear", color = MaterialTheme.colorScheme.error) }, onClick = { menu = false; confirmar = "bloquear" })
                 }
             }
         }
+    }
+
+    if (reportando) {
+        ReportarSheet(ObjetoReporte.Persona(usuario), "Reportar a @$usuario") { reportando = false }
     }
 
     confirmar?.let { accion ->

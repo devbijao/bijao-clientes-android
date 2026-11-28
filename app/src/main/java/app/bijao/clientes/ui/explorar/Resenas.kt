@@ -2,6 +2,7 @@ package app.bijao.clientes.ui.explorar
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,12 +17,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +54,8 @@ import app.bijao.clientes.core.network.datoOLanzar
 import app.bijao.clientes.core.pdf.formatearFecha
 import app.bijao.clientes.core.pdf.parsearISO
 import app.bijao.clientes.core.ui.Estrellas
+import app.bijao.clientes.ui.reportar.ObjetoReporte
+import app.bijao.clientes.ui.reportar.ReportarSheet
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 
@@ -95,8 +101,9 @@ fun ResumenResenas(respuesta: ResenasResponse, onVerTodas: () -> Unit) {
 }
 
 @Composable
-fun ResenaCard(resena: Resena) {
+fun ResenaCard(resena: Resena, onReportar: (() -> Unit)? = null) {
     var expandido by remember { mutableStateOf(false) }
+    var menu by remember { mutableStateOf(false) }
 
     Card(
         shape = RoundedCornerShape(14.dp),
@@ -123,6 +130,18 @@ fun ResenaCard(resena: Resena) {
                         Spacer(Modifier.padding(start = 8.dp))
                     }
                     Estrellas(valor = resena.calificacion.toDouble(), tamano = 12.dp)
+                    // «Reportar» en las reseñas ajenas (Apple guideline 1.2).
+                    if (onReportar != null && !resena.esMia) {
+                        Box {
+                            IconButton(onClick = { menu = true }, modifier = Modifier.size(28.dp)) {
+                                Icon(Icons.Filled.MoreVert, contentDescription = "Más opciones de la reseña",
+                                    modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                                DropdownMenuItem(text = { Text("Reportar reseña") }, onClick = { menu = false; onReportar() })
+                            }
+                        }
+                    }
                 }
                 resena.createdAt?.let { fecha ->
                     parsearISO(fecha)?.let {
@@ -238,6 +257,7 @@ fun FormularioResena(negocioId: String, onGuardado: () -> Unit) {
 @Composable
 fun TodasResenasScreen(negocioId: String, resumenInicial: ResenasResponse, onAtras: () -> Unit) {
     var respuesta by remember { mutableStateOf(resumenInicial) }
+    var reportando by remember { mutableStateOf<Resena?>(null) }
 
     LaunchedEffect(negocioId) {
         try {
@@ -281,7 +301,12 @@ fun TodasResenasScreen(negocioId: String, resumenInicial: ResenasResponse, onAtr
                     )
                 }
             }
-            items(respuesta.data) { resena -> ResenaCard(resena) }
+            items(respuesta.data) { resena ->
+                ResenaCard(resena, onReportar = resena.ref?.let { { reportando = resena } })
+            }
         }
+    }
+    reportando?.let { r ->
+        ReportarSheet(ObjetoReporte.Resena(negocioId, r.ref.orEmpty()), "Reportar reseña") { reportando = null }
     }
 }

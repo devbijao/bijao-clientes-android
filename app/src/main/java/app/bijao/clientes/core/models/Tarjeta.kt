@@ -69,15 +69,31 @@ data class MovimientoTarjeta(
 )
 
 @Serializable
-private data class SoloHistorial(val historial: List<MovimientoTarjeta> = emptyList())
+private data class SoloHistorial(
+    val historial: List<MovimientoTarjeta> = emptyList(),
+    /** El backend puede crear la tarjeta en Google Wallet (F5). */
+    @SerialName("google_wallet") val googleWallet: Boolean = false,
+)
 
 /** `GET /api/app/beneficios/{id}`: la tarjeta y sus últimos movimientos, en un
  * mismo objeto -- se decodifica dos veces del mismo JSON. */
-data class TarjetaDetalle(val tarjeta: Tarjeta, val historial: List<MovimientoTarjeta>) {
+data class TarjetaDetalle(
+    val tarjeta: Tarjeta,
+    val historial: List<MovimientoTarjeta>,
+    val googleWallet: Boolean = false,
+) {
     companion object {
-        fun desde(obj: JsonObject) = TarjetaDetalle(
-            tarjeta = ApiClient.json.decodeFromJsonElement<Tarjeta>(obj),
-            historial = ApiClient.json.decodeFromJsonElement<SoloHistorial>(obj).historial,
-        )
+        fun desde(obj: JsonObject): TarjetaDetalle {
+            val extra = ApiClient.json.decodeFromJsonElement<SoloHistorial>(obj)
+            return TarjetaDetalle(
+                tarjeta = ApiClient.json.decodeFromJsonElement<Tarjeta>(obj),
+                historial = extra.historial,
+                googleWallet = extra.googleWallet,
+            )
+        }
     }
 }
+
+/** `GET /api/app/beneficios/{id}/google-wallet`: el enlace de «Agregar a Google Wallet». */
+@Serializable
+data class TarjetaGoogleWallet(val jwt: String, val url: String)

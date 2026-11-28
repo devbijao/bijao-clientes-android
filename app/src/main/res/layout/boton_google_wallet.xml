@@ -13,6 +13,7 @@
     android:contentDescription="Agregar a la Billetera de Google">
 
     <ImageView
+        android:id="@+id/contenido_boton_google_wallet"
         android:layout_width="match_parent"
         android:layout_height="28dp"
         android:layout_centerInParent="true"
